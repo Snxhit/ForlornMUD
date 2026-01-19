@@ -8,11 +8,38 @@ import (
 	"strings"
 )
 
+// networking
 const (
 	CONN_HOST = "0.0.0.0"
 	CONN_PORT = "8899"
 	CONN_TYPE = "tcp"
 )
+
+// state variables
+var ConnectionStore []ConnectionData = []ConnectionData{}
+
+// type structs
+type World struct {
+
+}
+
+type ConnectionData struct {
+	store net.Conn
+	session *Session
+}
+
+type Session struct {
+	authorized *bool
+	id *int
+	username *string
+	password *string
+	character *Character
+}
+
+type Character struct {
+	hp int
+	inventory []string
+}
 
 func main() {
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
@@ -31,15 +58,24 @@ func main() {
 			os.Exit(1)
 		}
 
-		new_conn.Write([]byte("> "))
-		go HandleNewClient(new_conn)
+		FieldOne := false
+		FieldTwo := 0
+		FieldThree := ""
+		FieldFour := ""
+		sesh := Session{&FieldOne, &FieldTwo, &FieldThree, &FieldFour, nil}
+		conn := ConnectionData{new_conn, &sesh}
+		ConnectionStore = append(ConnectionStore, conn)
+		fmt.Println(conn)
+		go HandleNewClient(&conn)
 	}
 }
 
-func HandleNewClient(conn net.Conn) {
+func HandleNewClient(connection *ConnectionData) {
+	stream := connection.store
+	stream.Write([]byte("What is your name?\n> "))
 	for {
-		buf := make([]byte, 1024)
-		_, err := conn.Read(buf)
+		buf := make([]byte, 2048)
+		_, err := stream.Read(buf)
 		if err != nil {
 			fmt.Println("Error reading input: ", err.Error())
 		}
@@ -48,28 +84,45 @@ func HandleNewClient(conn net.Conn) {
 		str_cmd := strings.ToLower(string(buf_cmd[0:len(buf_cmd) - 1]))
 		cmd_tokens := strings.Split(str_cmd, " ")
 
-		switch len(cmd_tokens) {
-		case 1:
-			switch cmd_tokens[0] {
-			case "exit":
-				conn.Write([]byte("Exiting game.\n"))
-				conn.Close()
-				return
-			default:
-				conn.Write([]byte("Command not found!"))
+		if !*connection.session.authorized {
+			print()
+			if len(cmd_tokens) != 1 && len(*connection.session.username) == 0 {
+				stream.Write([]byte("Names can't have spaces, try again!"))
+			} else if len(cmd_tokens) == 1 && len(*connection.session.username) == 0 {
+				*connection.session.username = cmd_tokens[0]
+				stream.Write([]byte("Is " + cmd_tokens[0] + " your name? Then, enter a password."))
+			} else if len(cmd_tokens) != 1 && len(*connection.session.username) != 0 {
+				stream.Write([]byte("Passwords can't have spaces, try again!"))
+			} else if len(cmd_tokens) == 1 && len(*connection.session.username) != 0 {
+				*connection.session.password = cmd_tokens[0]
+				*connection.session.authorized = true
+				stream.Write([]byte("Welcome to the MUD!"))
+				fmt.Println(*connection.session)
 			}
 
-		case 2:
-			switch cmd_tokens[0] {
-			case "echo":
-				conn.Write([]byte(cmd_tokens[1]))
+			stream.Write([]byte("\n> "))
+		} else {
+			switch len(cmd_tokens) {
+			case 1:
+				switch cmd_tokens[0] {
+				case "exit":
+					stream.Write([]byte("Exiting game."))
+					stream.Close()
+					return
+				default:
+					stream.Write([]byte("Command not found!"))
+				}
+
+			case 2:
+				switch cmd_tokens[0] {
+				case "echo":
+					stream.Write([]byte(cmd_tokens[1]))
+				default:
+					stream.Write([]byte("Command not found!"))
+				}
 			}
-		default:
-			conn.Write([]byte("Command not found!"))
+
+			stream.Write([]byte("\n> "))
 		}
-
-		conn.Write([]byte("\n> "))
-
 	}
-	conn.Close()
 }
