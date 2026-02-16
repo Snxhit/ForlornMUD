@@ -421,9 +421,8 @@ func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB
 	defer world.mu.Unlock()
 
 	if connection.isClientWeb {
-		connection.store.Write([]byte("\n\x01COMBAT type:entity hp:100 maxHp:200 enemyName:None enemyHp:100 enemyMaxHp:100"))
-		connection.store.Write([]byte("\n\x01EXP exp:100 lvl:1 trains:0"))
-		connection.store.Write([]byte("\n\x01SELF hp:100 coins:0"))
+		connection.store.Write([]byte("\n\x01COMBAT type:entity hp:100 maxHp:200 enemyName:None enemyHp:100 enemyMaxHp:100\n"))
+		connection.store.Write([]byte("\n\x01EXP exp:100 lvl:1 trains:0\n"))
 	}
 
 	connection.store.Write([]byte("Exiting game."))

@@ -72,7 +72,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		conn.store.Write([]byte("\x1b[2K\r  The " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + " damages you for " + color(conn, "red", "tp") + strconv.Itoa(eFinalDam) + color(conn, "reset", "reset") + " (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n\n> "))
 	}
 	if conn.session.character.hp <= 0 {
-		conn.store.Write([]byte("\n\x01COMBAT " + "type:entity" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
+		conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
 		conn.store.Write([]byte(color(conn, "red", "tp") + "\x1b[2K\r\n  You died!" + color(conn, "reset", "reset") + ""))
 		conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You are teleported to spawn!" + color(conn, "reset", "reset") + "\n\n> "))
 		conn.session.character.hp = conn.session.character.maxHp
@@ -87,7 +87,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		return 1
 	}
 	if world.entities[*conn.session.character.targetID].hp <= 0 {
-		conn.store.Write([]byte("\n\x01COMBAT " + "type:entity" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
+		conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
 		conn.store.Write([]byte("\x1b[2K\r\n  You " + color(conn, "red", "tp") + "killed " + color(conn, "reset", "reset") + "a " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "!"))
 		c := rand.Intn(cMax-cMin) + cMin
 		conn.session.character.coins += c
@@ -204,8 +204,8 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 	}
 
 	if p2Chr.hp <= 0 {
-		p1Chr.conn.store.Write([]byte("\n\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
-		p2Chr.conn.store.Write([]byte("\n\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
+		p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
 		p2Chr.inCombat = false
 		p2Chr.targetID = nil
 		p2Chr.targetType = nil
@@ -230,8 +230,8 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		p2Chr.conn.store.Write([]byte("\n\n> "))
 		return 1
 	} else if p1Chr.hp <= 0 {
-		p1Chr.conn.store.Write([]byte("\n\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
-		p2Chr.conn.store.Write([]byte("\n\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\"" + "\" enemyHp:0" + " enemyMaxHp:0" + "\n"))
+		p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
 		p2Chr.inCombat = false
 		p2Chr.targetID = nil
 		p2Chr.targetType = nil
