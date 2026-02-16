@@ -18,6 +18,9 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 	// entity dodgechance formula: (entity.agi / sum(player.agi + entity.agi)) * maxDodge
 	// where maxDodge is (0, 100) a const
 
+	if conn.session.character.targetID == nil {
+		return 1
+	}
 	chr := *conn.session.character
 	tEnt := world.entities[*conn.session.character.targetID]
 	cMin := world.EntityTemplates[tEnt.templateID].cMin
@@ -153,6 +156,10 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 	// player dodgechance formula: (player.agi / sum(player.agi + entity.agi)) * maxDodge
 	// entity dodgechance formula: (entity.agi / sum(player.agi + entity.agi)) * maxDodge
 	// where maxDodge is (0, 100) a const
+
+	if conn.session.character.targetID == nil {
+		return 1
+	}
 
 	p1Chr := conn.session.character
 	p2Chr := world.characters[*conn.session.character.targetID]
