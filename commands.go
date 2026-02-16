@@ -193,7 +193,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							}
 						}
 						if matchBool {
-							stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
+							stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[id].templateID].name + color(connection, "reset", "reset") + "\n"))
 							world.items[id].locationType = "room"
 							world.items[id].locationID = world.nodeList[connection.session.character.locationID].id
 							world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, id)
