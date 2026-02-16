@@ -107,6 +107,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		c := rand.Intn(cMax-cMin) + cMin
 		conn.session.character.coins += c
 		conn.store.Write([]byte("\n  You " + color(conn, "yellow", "tp") + "loot" + color(conn, "reset", "reset") + " the " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "'s body and find " + color(conn, "yellow", "tp") + strconv.Itoa(c) + color(conn, "reset", "reset") + " coins!"))
+		conn.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(conn.session.character.coins) + "\n"))
 		for _, d := range world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].dropTable {
 			if rand.Intn(100) <= d.chance {
 				var qty int

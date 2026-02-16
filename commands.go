@@ -532,6 +532,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					connection.session.character.maxHp += 10
 					stream.Write([]byte("\n  You train once and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " by ten!"))
 				}
+				connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
 
 				connection.session.character.trains -= 1
 				stream.Write([]byte("\n  You now have one less " + color(connection, "cyan", "tp") + "train" + color(connection, "reset", "reset") + ".\n"))
@@ -645,6 +646,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							CreateAndInsertItem(connection, world, db, item)
 							stream.Write([]byte("\n  You buy 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + bpS + color(connection, "reset", "reset") + " coins from " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 							connection.session.character.coins -= int(bp)
+							connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
 						} else {
 							stream.Write([]byte(color(connection, "magenta", "tp") + "\n  You don't have enough coins to buy this item!\n" + color(connection, "reset", "reset")))
 						}
@@ -674,6 +676,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 								DeleteItem(connection, world, db, i.id)
 								stream.Write([]byte("\n  You sell 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + spS + color(connection, "reset", "reset") + " coins to " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 								connection.session.character.coins += int(sp)
+								connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
 								break
 							}
 						}

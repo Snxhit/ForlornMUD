@@ -1,6 +1,6 @@
 <div align="center">
   <h1>ForlornMUD</h1>
-  <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771177778/Untitled197_20260206224254_vskafj.png">
+  <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771271258/Untitled197_20260216231412_rdbuqx.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
   ![Time Tracking](https://img.shields.io/badge/ForlornMUD-81h%2005m-critical?logo=neovim&style=plastic)
