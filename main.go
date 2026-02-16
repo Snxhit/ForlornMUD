@@ -370,6 +370,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 							}
 						}
 						stream.Write([]byte("  Welcome to the MUD!\n\n"))
+						connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
 						HandleMovement(connection, world)
 					} else {
 						stream.Write([]byte("  Wrong password!"))
@@ -394,6 +395,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 					connection.session.authorized = true
 					TotalPlayers += 1
 					stream.Write([]byte("  Welcome to the MUD!\n\n"))
+					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
 					HandleMovement(connection, world)
 					stream.Write([]byte("\x1b[2K\r\n  " + color(connection, "red", "tp") + "!!!" + color(connection, "reset", "reset") + " Please enter the command " + color(connection, "red", "tp") + "help newplayer" + color(connection, "reset", "reset") + " to get started." + color(connection, "red", "tp") + " !!! " + color(connection, "reset", "reset") + "\n "))
 				}
@@ -421,7 +423,7 @@ func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB
 	defer world.mu.Unlock()
 
 	if connection.isClientWeb {
-		connection.store.Write([]byte("\n\x01COMBAT type:entity hp:100 maxHp:200 enemyName:None enemyHp:100 enemyMaxHp:100\n"))
+		connection.store.Write([]byte("\n\x01COMBAT type:entity hp:0 maxHp:0 enemyName:None enemyHp:0 enemyMaxHp:0\n"))
 		connection.store.Write([]byte("\n\x01EXP exp:100 lvl:1 trains:0\n"))
 	}
 
