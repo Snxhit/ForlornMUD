@@ -125,6 +125,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		} else {
 			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n\n> "))
 		}
+		conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
 		conn.session.character.exp += int(exp)
 		if world.merchants[*conn.session.character.targetID] != nil {
 			db.Exec("DELETE FROM merchants WHERE id = ?", *conn.session.character.targetID)
