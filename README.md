@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771177778/Untitled197_20260206224254_vskafj.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-73h%2030m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-79h%2009m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -194,19 +194,24 @@ This enables playing from the browser without requiring direct TCP support.
 ## Screenshots
 - **Combat system**<br>
 Item drops, coins, exp, levels, and more!
-![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_1_dxk4oq.png)
+
+  ![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_1_dxk4oq.png)
 Defeat, respawning system
-![Combat System 2](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-38_tw4ceh.png)
+
+  ![Combat System 2](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-38_tw4ceh.png)
 
 - **Merchants**<br>
 Listing, buying and selling
-![Merchants](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_kxfarl.png)
+
+  ![Merchants](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_kxfarl.png)
 
 - **Profile**
-![Profile](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-45_svk09j.png)
+
+  ![Profile](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-45_svk09j.png)
 
 - **World exploration**
-![Exploration](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-40_gdf9uc.png)
+
+  ![Exploration](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-40_gdf9uc.png)
 
 - **Training system**
 
@@ -256,7 +261,7 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 **Version**: v0.0.7<br>
 **Latest Release Version**: None<br>
-**Time Spent**: 73 Hours 30 Minutes<br>
+**Time Spent**: 79 Hours 09 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---
