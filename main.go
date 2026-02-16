@@ -316,7 +316,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 
 		if !connection.session.authorized {
 			if len(cmdTokens) != 1 {
-				stream.Write([]byte("  No inputs can have spaces!"))
+				stream.Write([]byte("\n  No inputs can have spaces!\n"))
 			} else if len(cmdTokens) == 1 && len(connection.session.username) == 0 && len(cmdTokens[0]) > 3 && len(cmdTokens[0]) <= 14 {
 
 				row := db.QueryRow("SELECT id, username, password, hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID FROM players WHERE username = ?", cmdTokens[0])
@@ -373,7 +373,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 						connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
 						HandleMovement(connection, world)
 					} else {
-						stream.Write([]byte("  Wrong password!"))
+						stream.Write([]byte("\n  Wrong password!\n"))
 					}
 				} else {
 					stream.Write([]byte("\n  Welcome, " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " to the game!\n"))
