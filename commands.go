@@ -14,47 +14,50 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 	switch len(cmdTokens) {
 	case 1:
 		switch cmdTokens[0] {
-		case "exit":
+		case "exit", "quit":
 			HandleClientDisconnect(connection, world, db)
 			return 0
-		case "selfharm":
-			connection.session.character.hp -= 10
-			fmt.Println(connection.session.character.hp)
-			connection.store.Write([]byte("Ow! You poke yourself and lose 10 hp."))
-		case "incmhp":
-			connection.session.character.maxHp += 10
-		case "look":
+		case "look", "l":
 			HandleMovement(connection, world)
-		case "north":
+		case "north", "n":
 			if world.nodeList[connection.session.character.locationID].exits[0] != -1 {
 				LeftNotifier(world, connection, "north")
 				connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[0]
 				HandleMovement(connection, world)
 				EnterNotifier(world, connection, "north")
+			} else {
+				stream.Write([]byte("\n  You cannot move in that direction!\n"))
 			}
-		case "south":
+		case "south", "s":
 			if world.nodeList[connection.session.character.locationID].exits[1] != -1 {
 				LeftNotifier(world, connection, "south")
 				connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[1]
 				HandleMovement(connection, world)
 				EnterNotifier(world, connection, "south")
+			} else {
+				stream.Write([]byte("\n  You cannot move in that direction!\n"))
 			}
-		case "west":
+		case "west", "w":
 			if world.nodeList[connection.session.character.locationID].exits[2] != -1 {
 				LeftNotifier(world, connection, "west")
 				connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[2]
 				HandleMovement(connection, world)
 				EnterNotifier(world, connection, "west")
+			} else {
+				stream.Write([]byte("\n  You cannot move in that direction!\n"))
 			}
-		case "east":
+		case "east", "e":
 			if world.nodeList[connection.session.character.locationID].exits[3] != -1 {
 				LeftNotifier(world, connection, "east")
 				connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[3]
 				HandleMovement(connection, world)
 				EnterNotifier(world, connection, "east")
+			} else {
+				stream.Write([]byte("\n  You cannot move in that direction!\n"))
 			}
 
-		case "inventory":
+		case "inventory", "inv", "i":
+			stream.Write([]byte("\n"))
 			iIDs := map[int]int{}
 			for _, item := range world.items {
 				if world.items[item.id].locationType == "player" && world.items[item.id].locationID == connection.session.id && !world.items[item.id].equipped {
@@ -63,37 +66,52 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			}
 			for tID, num := range iIDs {
 				s := strconv.Itoa(num)
-				stream.Write([]byte("  " + s + strings.Repeat(" ", 3-len(s)) + " | " + world.ItemTemplates[tID].name + "\n"))
+				stream.Write([]byte("  " + color(connection, "cyan", "tp") + s + color(connection, "reset", "reset") + strings.Repeat(" ", 3-len(s)) + " | " + world.ItemTemplates[tID].name + "\n"))
 			}
-		case "equipped":
+		case "equipped", "worn", "armor":
 			s := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
 			stream.Write([]byte("\n"))
 			for i, slot := range s {
 				if connection.session.character.equipment[slot] != 0 {
-					stream.Write([]byte("  - " + s[i] + strings.Repeat(" ", 8-len(s[i])) + " - " + world.ItemTemplates[world.items[connection.session.character.equipment[slot]].templateID].name + "\n"))
+					stream.Write([]byte(color(connection, "cyan", "tp") + "  - " + color(connection, "reset", "reset") + s[i] + strings.Repeat(" ", 8-len(s[i])) + " - " + world.ItemTemplates[world.items[connection.session.character.equipment[slot]].templateID].name + "\n"))
 				} else {
-					stream.Write([]byte("  + " + s[i] + strings.Repeat(" ", 8-len(s[i])) + " - " + "<empty>" + "\n"))
+					stream.Write([]byte(color(connection, "cyan", "tp") + "  + " + color(connection, "reset", "reset") + s[i] + strings.Repeat(" ", 8-len(s[i])) + " - " + "<empty>" + "\n"))
 				}
 			}
-		case "effects":
-			stream.Write([]byte("Modifiers:\n"))
+		case "effects", "effs":
+			stream.Write([]byte(color(connection, "cyan", "tp") + "\n  Modifiers:\n" + color(connection, "reset", "reset")))
 			for _, mod := range connection.session.character.modifiers {
 				if mod.value > 0 {
-					stream.Write([]byte("  " + world.ItemTemplates[world.items[mod.sourceID].templateID].name + ": " + mod.stat + " +" + strconv.Itoa(mod.value) + "\n"))
+					stream.Write([]byte("    " + color(connection, "green", "tp") + glphys(connection, "sau") + color(connection, "reset", "reset") + " " + world.ItemTemplates[world.items[mod.sourceID].templateID].name + ": " + color(connection, "yellow", "tp") + mod.stat + color(connection, "reset", "reset") + " +" + strconv.Itoa(mod.value) + "\n"))
 				} else {
-					stream.Write([]byte("  " + world.ItemTemplates[world.items[mod.sourceID].templateID].name + ": " + mod.stat + " -" + strconv.Itoa(mod.value) + "\n"))
+					stream.Write([]byte("    " + color(connection, "red", "tp") + glphys(connection, "sad") + color(connection, "reset", "reset") + world.ItemTemplates[world.items[mod.sourceID].templateID].name + ": " + color(connection, "yellow", "tp") + mod.stat + color(connection, "reset", "reset") + " -" + strconv.Itoa(mod.value) + "\n"))
 				}
 			}
-		case "stronk":
-			connection.session.character.baseStats = Stats{10, 10, 10, 10, 10}
-		case "profile":
+		case "profile", "pf":
 			e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
 			eList := [6]string{}
 			for i, slot := range e {
-				if connection.session.character.equipment[slot] != 0 {
-					eList[i] = "  - " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + world.ItemTemplates[world.items[connection.session.character.equipment[slot]].templateID].name
+				if !connection.isColorEnabled {
+					if connection.session.character.equipment[slot] != 0 {
+						eList[i] = "  - " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + world.ItemTemplates[world.items[connection.session.character.equipment[slot]].templateID].name
+					} else {
+						eList[i] = "  + " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + "<empty>"
+					}
 				} else {
-					eList[i] = "  + " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + "<empty>"
+					if connection.session.character.equipment[slot] != 0 {
+						eList[i] = "  - " + color(connection, "magenta", "tp") + e[i] + color(connection, "reset", "reset") + strings.Repeat(" ", 8-len(e[i])) + " - "
+						eP := color(connection, "cyan", "tp") + world.ItemTemplates[world.items[connection.session.character.equipment[slot]].templateID].name + color(connection, "reset", "reset")
+						// framework laptop
+						if visibleLen(eP) > 15 {
+							eList[i] += eP[0:17]
+							eList[i] += "..."
+							eList[i] += color(connection, "reset", "reset")
+						} else {
+							eList[i] += eP
+						}
+					} else {
+						eList[i] = "  + " + color(connection, "magenta", "tp") + e[i] + color(connection, "reset", "reset") + strings.Repeat(" ", 8-len(e[i])) + " - " + "<empty>"
+					}
 				}
 			}
 
@@ -105,30 +123,14 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			}
 
 			cardLength := 60
+			c := strconv.Itoa(connection.session.character.coins)
+			t := strconv.Itoa(connection.session.character.trains)
+			lvl := strconv.Itoa(connection.session.character.level)
+			exp := strconv.Itoa(connection.session.character.exp)
+			expBars := (connection.session.character.exp % 100) / 5
 			s := connection.session.character.baseStats
 			str, dex, agi, stam, int := strconv.Itoa(s.Str), strconv.Itoa(s.Dex), strconv.Itoa(s.Agi), strconv.Itoa(s.Stam), strconv.Itoa(s.Int)
-			stream.Write([]byte("\n  +" + strings.Repeat("-", cardLength) + "+\n"))
-			us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + connection.session.username
-			stream.Write([]byte(us + strings.Repeat(" ", cardLength-len(us)+2) + " |\n"))
-			stream.Write([]byte("  +" + strings.Repeat("-", 27) + "+" + strings.Repeat("-", cardLength-28) + "+\n"))
-			stream.Write([]byte("  |" + strings.Repeat(" ", 27) + "|" + strings.Repeat(" ", cardLength-28) + "|\n"))
-			stream.Write([]byte("  | " + "stats:" + strings.Repeat(" ", 19) + " | "))
-			stream.Write([]byte("equipment:" + strings.Repeat(" ", cardLength-40) + " |\n"))
-			// stream.Write([]byte("  | " + "  Strength     :  [ " + strings.Repeat("0", 3-len(str)) + str + " ]" + strings.Repeat(" ", cardLength-27) + " |\n")) <-- for reference
-			stream.Write([]byte("  | " + "  Strength     :  [ " + strings.Repeat("0", 3-len(str)) + str + " ]" + " | "))
-			stream.Write([]byte(eList[0] + strings.Repeat(" ", cardLength-30-len(eList[0])) + " |\n"))
-			stream.Write([]byte("  | " + "  Dexterity    :  [ " + strings.Repeat("0", 3-len(dex)) + dex + " ]" + " | "))
-			stream.Write([]byte(eList[1] + strings.Repeat(" ", cardLength-30-len(eList[1])) + " |\n"))
-			stream.Write([]byte("  | " + "  Agility      :  [ " + strings.Repeat("0", 3-len(agi)) + agi + " ]" + " | "))
-			stream.Write([]byte(eList[2] + strings.Repeat(" ", cardLength-30-len(eList[2])) + " |\n"))
-			stream.Write([]byte("  | " + "  Stamina      :  [ " + strings.Repeat("0", 3-len(stam)) + stam + " ]" + " | "))
-			stream.Write([]byte(eList[3] + strings.Repeat(" ", cardLength-30-len(eList[3])) + " |\n"))
-			stream.Write([]byte("  | " + "  Intelligence :  [ " + strings.Repeat("0", 3-len(int)) + int + " ]" + " | "))
-			stream.Write([]byte(eList[4] + strings.Repeat(" ", cardLength-30-len(eList[4])) + " |\n"))
-			stream.Write([]byte("  | " + strings.Repeat(" ", 25) + " | "))
-			stream.Write([]byte(eList[5] + strings.Repeat(" ", cardLength-30-len(eList[5])) + " |\n"))
-			stream.Write([]byte("  |" + strings.Repeat(" ", 27) + "|" + strings.Repeat(" ", cardLength-28) + "|\n"))
-			stream.Write([]byte("  +" + strings.Repeat("-", 27) + "+" + strings.Repeat("-", cardLength-28) + "+\n"))
+			printProfileCard(connection, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList)
 
 		default:
 			stream.Write([]byte("\n  Command not found!\n"))
@@ -136,27 +138,71 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 
 	case 2:
 		switch cmdTokens[0] {
-		case "pickup":
+		case "help", "h":
+			printHelpFile(cmdTokens[1], connection)
+		case "pickup", "take", "pick":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
-				stream.Write([]byte("Invalid syntax. Please provide an integer!"))
+				for _, id := range world.nodeList[connection.session.character.locationID].itemIDs {
+					keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[world.items[id].templateID].name), func(r rune) bool {
+						return r == ' ' || r == ','
+					})
+					matchBool := false
+					for _, k := range keywords {
+						if k == cmdTokens[1] {
+							matchBool = true
+						}
+					}
+					if matchBool {
+						stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
+						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
+						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
+						_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
+						world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
+						fmt.Println(err)
+						break
+					} else {
+						stream.Write([]byte("\n  There is no such item.\n"))
+					}
+				}
 			} else {
 				if len(world.nodeList[connection.session.character.locationID].itemIDs) > i {
-					stream.Write([]byte("You pick up a " + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name))
+					stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
 					world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
 					world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
-					fmt.Println(world.nodeList[connection.session.character.locationID].itemIDs)
 					_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
 					world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
 					fmt.Println(err)
 				} else {
-					stream.Write([]byte("There is no such item."))
+					stream.Write([]byte("\n  There is no such item.\n"))
 				}
 			}
-		case "drop":
+		case "drop", "put", "throw":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
-				stream.Write([]byte("Invalid syntax. Please provide an integer!"))
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id {
+						id := item.id
+						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[world.items[id].templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						if matchBool {
+							stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
+							world.items[id].locationType = "room"
+							world.items[id].locationID = world.nodeList[connection.session.character.locationID].id
+							world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, id)
+							_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, id)
+							fmt.Println(err)
+							break
+						}
+					}
+				}
 			} else {
 				var playerItems []int
 				for _, item := range world.items {
@@ -165,20 +211,36 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 				}
 				if len(playerItems) > i {
-					stream.Write([]byte("You dropped a " + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name))
+					stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
 					world.items[playerItems[i]].locationType = "room"
 					world.items[playerItems[i]].locationID = world.nodeList[connection.session.character.locationID].id
 					world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, playerItems[i])
 					_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, playerItems[i])
 					fmt.Println(err)
 				} else {
-					stream.Write([]byte("There is no such item."))
+					stream.Write([]byte("\n  There is no such item."))
 				}
 			}
 		case "examine":
+			var itemT *ItemTemplate
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
-				stream.Write([]byte("Invalid syntax. Please provide an integer!"))
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
+						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[item.templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						if matchBool {
+							itemT = world.ItemTemplates[item.templateID]
+						}
+					}
+				}
 			} else {
 				var playerItems []int
 				for _, item := range world.items {
@@ -187,26 +249,82 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 				}
 				if len(playerItems) > i {
-					stream.Write([]byte("Modifiers:\n"))
-					for _, mod := range world.ItemTemplates[world.items[playerItems[i]].templateID].modifiers {
-						if mod.value > 0 {
-							stream.Write([]byte("  " + mod.stat + " +" + strconv.Itoa(mod.value) + "\n"))
-						} else {
-							stream.Write([]byte("  " + mod.stat + " -" + strconv.Itoa(mod.value) + "\n"))
-						}
-					}
+					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
 				} else {
-					stream.Write([]byte("There is no such item."))
+					stream.Write([]byte("\n  There is no such item.\n"))
 				}
 			}
-		case "equip":
+			if itemT != nil {
+				stream.Write([]byte("\n  " + color(connection, "cyan", "tp") + itemT.name + color(connection, "reset", "reset")))
+				stream.Write([]byte("\n    " + itemT.description + "\n"))
+				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+				if slices.Contains(e, itemT.itype) {
+					stream.Write([]byte("\n  Type:" + color(connection, "green", "tp") + " Equipment\n" + color(connection, "reset", "reset")))
+					stream.Write([]byte("  Slot: " + color(connection, "magenta", "tp") + itemT.itype + color(connection, "reset", "reset")))
+				} else {
+					stream.Write([]byte("\n  Type:" + color(connection, "green", "tp") + " Consumable" + color(connection, "reset", "reset")))
+					for _, eff := range itemT.effects {
+						if eff.effect == "hp" {
+							stream.Write([]byte("\n  HP: +" + color(connection, "red", "tp") + strconv.Itoa(eff.value) + color(connection, "reset", "reset")))
+						}
+					}
+				}
+				stream.Write([]byte("\n\n  Modifiers:\n"))
+				for _, mod := range itemT.modifiers {
+					if mod.value > 0 {
+						stream.Write([]byte("    " + mod.stat + color(connection, "green", "tp") + " +" + color(connection, "yellow", "tp") + strconv.Itoa(mod.value) + color(connection, "reset", "reset") + "\n"))
+					} else {
+						stream.Write([]byte("    " + mod.stat + color(connection, "red", "tp") + " -" + color(connection, "yellow", "tp") + strconv.Itoa(mod.value) + color(connection, "reset", "reset") + "\n"))
+					}
+				}
+			}
+		case "equip", "wear", "eq":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
-				stream.Write([]byte("Invalid syntax. Please provide an integer!"))
-			} else {
-				var playerItems []int
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
+						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[item.templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+						if matchBool && slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
+							if connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] != 0 {
+								out := connection.session.character.modifiers[:0]
+								for _, mod := range connection.session.character.modifiers {
+									if mod.sourceID != connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] {
+										out = append(out, mod)
+									}
+								}
+								connection.session.character.modifiers = out
+								stream.Write([]byte("\n  You unequip " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + "\n"))
+								world.items[connection.session.character.equipment[world.ItemTemplates[item.templateID].itype]].equipped = false
+								connection.session.character.equipment[cmdTokens[1]] = 0
+								_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", false, item.id)
+								fmt.Println(err)
+							}
+							for _, mod := range world.ItemTemplates[item.templateID].modifiers {
+								connection.session.character.modifiers = append(connection.session.character.modifiers, StatModifier{"item", item.id, mod.stat, mod.value})
+							}
+							stream.Write([]byte("\n  You equip a " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + " on the " + color(connection, "yellow", "tp") + world.ItemTemplates[item.templateID].itype + color(connection, "reset", "reset") + "\n"))
+							item.equipped = true
+							_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", true, item.id)
+							fmt.Println(err)
+							connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] = item.id
+							break
+						}
+					}
+				}
+			} else {
+				var playerItems []int
+				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped && slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
 						playerItems = append(playerItems, item.id)
 					}
 				}
@@ -219,7 +337,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							}
 						}
 						connection.session.character.modifiers = out
-						stream.Write([]byte("You unequip " + world.ItemTemplates[world.items[playerItems[i]].templateID].name + "\n"))
+						stream.Write([]byte("\n  You unequip " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
 						world.items[connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype]].equipped = false
 						connection.session.character.equipment[cmdTokens[1]] = 0
 						_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", false, world.items[playerItems[i]].id)
@@ -228,17 +346,17 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					for _, mod := range world.ItemTemplates[world.items[playerItems[i]].templateID].modifiers {
 						connection.session.character.modifiers = append(connection.session.character.modifiers, StatModifier{"item", playerItems[i], mod.stat, mod.value})
 					}
-					stream.Write([]byte("\nYou equip a " + world.ItemTemplates[world.items[playerItems[i]].templateID].name + " on the " + world.ItemTemplates[world.items[playerItems[i]].templateID].itype + "\n"))
+					stream.Write([]byte("\n  You equip a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + " on the " + color(connection, "yellow", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].itype + color(connection, "reset", "reset") + "\n"))
 					world.items[playerItems[i]].equipped = true
 					_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", true, playerItems[i])
 					fmt.Println(err)
 					fmt.Println(connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype])
 					connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype] = playerItems[i]
 				} else {
-					stream.Write([]byte("\nThere is no such item.\n"))
+					stream.Write([]byte("\n  There is no such item.\n"))
 				}
 			}
-		case "unequip":
+		case "unequip", "remove", "uneq":
 			c := false
 			s := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
 			for _, i := range s {
@@ -255,16 +373,74 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					connection.session.character.modifiers = out
-					stream.Write([]byte("You unequip " + world.ItemTemplates[world.items[connection.session.character.equipment[cmdTokens[1]]].templateID].name + "\n"))
+					stream.Write([]byte("\n  You unequip " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[connection.session.character.equipment[cmdTokens[1]]].templateID].name + color(connection, "reset", "reset") + "\n"))
 					world.items[connection.session.character.equipment[cmdTokens[1]]].equipped = false
 					_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", false, world.items[connection.session.character.equipment[cmdTokens[1]]].id)
 					connection.session.character.equipment[cmdTokens[1]] = 0
 					fmt.Println(err)
 				}
 			} else {
-				stream.Write([]byte("There is no such slot to unequip from."))
+				stream.Write([]byte("\n  There is no such slot to unequip from.\n"))
 			}
-		case "fight":
+		case "use", "u":
+			var itemT *ItemTemplate
+			var itemM *Item
+			valid, i := validateInt(cmdTokens[1])
+			if !valid {
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
+						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[item.templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+						if matchBool && !slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
+							itemT = world.ItemTemplates[item.templateID]
+							itemM = item
+							break
+						}
+					}
+				}
+			} else {
+				var playerItems []int
+				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped && !slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
+						playerItems = append(playerItems, item.id)
+					}
+				}
+				if len(playerItems) > i && len(playerItems) != 0 {
+					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
+					itemM = world.items[playerItems[i]]
+				}
+			}
+			if itemT != nil {
+				for _, effect := range itemT.effects {
+					switch effect.effect {
+					case "hp":
+						if connection.session.character.hp != connection.session.character.maxHp {
+							stream.Write([]byte("\n  You use a " + color(connection, "cyan", "tp") + itemT.name + color(connection, "reset", "reset") + " to heal " + color(connection, "red", "tp") + strconv.Itoa(effect.value) + color(connection, "reset", "reset") + " hp!\n"))
+							if connection.isClientWeb {
+								connection.store.Write([]byte("\x01SELF " + "hp:" + strconv.Itoa(connection.session.character.hp) + " coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+							}
+							connection.session.character.hp += effect.value
+							_, err := db.Exec("DELETE FROM items WHERE id = ?", itemM.id)
+							delete(world.items, itemM.id)
+							fmt.Println(err)
+						} else {
+							stream.Write([]byte("\n  Your health is already full!\n"))
+						}
+					}
+				}
+			} else {
+				stream.Write([]byte("\n  There is no such item.\n"))
+			}
+		case "fight", "attack", "kick", "f":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
 				world.mu.Lock()
@@ -278,7 +454,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					if char.conn == connection {
 						p1Index = i
 					}
-					if char.conn != nil && char.conn.session.username == cmdTokens[1] && char.locationID == connection.session.character.locationID {
+					if char.conn != nil && char.conn.session.username == cmdTokens[1] && char.locationID == connection.session.character.locationID && !char.inCombat {
 						p2Chr = char
 						p2Index = i
 					}
@@ -289,8 +465,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					p2Idx := new(int)
 					*p2Idx = p2Index
 
-					stream.Write([]byte("Engaging " + p2Chr.conn.session.username + "\n"))
-					p2Chr.conn.store.Write([]byte("Engaging " + connection.session.username + "\n"))
+					stream.Write([]byte("\n  Engaging " + color(connection, "cyan", "tp") + p2Chr.conn.session.username + color(connection, "reset", "reset") + "\n"))
+					p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + connection.session.username + color(p2Chr.conn, "reset", "reset") + " wants to fight!\n\n> "))
 					p2Chr.inCombat = true
 					p2Chr.targetID = p1Idx
 					p2Chr.targetType = &TargetPlayer
@@ -298,12 +474,31 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					connection.session.character.targetID = p2Idx
 					connection.session.character.targetType = &TargetPlayer
 				} else {
-					stream.Write([]byte("Player not found in this room.\n"))
+					for _, id := range world.nodeList[connection.session.character.locationID].entityIDs {
+						keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[world.entities[id].templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						if matchBool && !world.entities[id].inCombat {
+							stream.Write([]byte("\n  Engaging a " + color(connection, "cyan", "tp") + world.EntityTemplates[world.entities[id].templateID].name + color(connection, "reset", "reset") + "\n"))
+							world.entities[id].inCombat = true
+							world.entities[id].targetID = &connection.session.id
+							connection.session.character.inCombat = true
+							connection.session.character.targetID = &id
+							connection.session.character.targetType = &TargetEntity
+							break
+						}
+					}
 				}
 				world.mu.Unlock()
 			} else {
-				if len(world.nodeList[connection.session.character.locationID].entityIDs) > i {
-					stream.Write([]byte("Engaging a " + world.EntityTemplates[world.entities[world.nodeList[connection.session.character.locationID].entityIDs[i]].templateID].name))
+				if len(world.nodeList[connection.session.character.locationID].entityIDs) > i && !world.entities[world.nodeList[connection.session.character.locationID].entityIDs[i]].inCombat {
+					stream.Write([]byte("\n  Engaging a " + color(connection, "cyan", "tp") + world.EntityTemplates[world.entities[world.nodeList[connection.session.character.locationID].entityIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
 					world.entities[world.nodeList[connection.session.character.locationID].entityIDs[i]].inCombat = true
 					world.entities[world.nodeList[connection.session.character.locationID].entityIDs[i]].targetID = &connection.session.id
 					connection.session.character.inCombat = true
@@ -311,7 +506,38 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					connection.session.character.targetType = &TargetEntity
 				}
 			}
-		case "list":
+		case "train":
+			opts := []string{"str", "dex", "agi", "stam", "int", "hp"}
+			if connection.session.character.trains < 1 {
+				stream.Write([]byte("\n  You do not have enough trains!\n"))
+			}
+			if slices.Contains(opts, cmdTokens[1]) {
+				switch cmdTokens[1] {
+				case "str":
+					connection.session.character.baseStats.Str += 1
+					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
+				case "dex":
+					connection.session.character.baseStats.Dex += 1
+					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
+				case "agi":
+					connection.session.character.baseStats.Agi += 1
+					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
+				case "stam":
+					connection.session.character.baseStats.Stam += 1
+					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
+				case "int":
+					connection.session.character.baseStats.Int += 1
+					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
+				case "hp":
+					connection.session.character.maxHp += 10
+					stream.Write([]byte("\n  You train once and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " by ten!"))
+				}
+
+				connection.session.character.trains -= 1
+				stream.Write([]byte("\n  You now have one less " + color(connection, "cyan", "tp") + "train" + color(connection, "reset", "reset") + ".\n"))
+			}
+
+		case "list", "browse":
 			for en, e := range world.entities {
 				keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[e.templateID].name), func(r rune) bool {
 					return r == ' ' || r == ','
@@ -323,16 +549,72 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 				}
 				if matchBool && world.merchants[en] != nil {
-					stream.Write([]byte("\n   [ ID ] + [QTY] + [ SELL ] + [  BUY  ] + [ NAME ]  \n"))
+					headingUncolored := "\n   [ ID ] + [QTY] + [ SELL ] + [  BUY  ] + [ NAME ]  \n"
+					headingColored := "\n   [\x1b[30;47m ID \x1b[39;49m] + [\x1b[30;47mQTY\x1b[39;49m] + [\x1b[30;47m SELL \x1b[39;49m] + [\x1b[30;47m  BUY  \x1b[39;49m] + [\x1b[30;47m NAME \x1b[39;49m]  \n"
+					if !connection.isColorEnabled {
+						stream.Write([]byte(headingUncolored))
+					} else {
+						stream.Write([]byte(headingColored))
+					}
 					for _, item := range world.merchants[en].list {
 						id := strconv.Itoa(world.ItemTemplates[item].id)
 						sp := strconv.Itoa(int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].sellRate))
 						bp := strconv.Itoa(int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate))
-						stream.Write([]byte("    " + id + strings.Repeat(" ", 6-len(id)) + "   " + "inf     " + sp + strings.Repeat(" ", 6-len(sp)) + "     " + bp + strings.Repeat(" ", 7-len(bp)) + "     " + world.ItemTemplates[item].name + "\n"))
+						stream.Write([]byte("    " + color(connection, "green", "tp") + id + strings.Repeat(" ", 6-len(id)) + "   " + color(connection, "magenta", "tp") + "inf     " + color(connection, "yellow", "tp") + sp + strings.Repeat(" ", 6-len(sp)) + "     " + bp + strings.Repeat(" ", 7-len(bp)) + "     " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + "\n"))
 					}
-					stream.Write([]byte("\n + buy <id> " + cmdTokens[1]))
-					stream.Write([]byte("\n - sell <id> " + cmdTokens[1] + "\n"))
+					stream.Write([]byte(color(connection, "green", "tp") + "\n +" + " buy " + color(connection, "reset", "reset") + "<id> " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset")))
+					stream.Write([]byte(color(connection, "red", "tp") + "\n -" + " sell " + color(connection, "reset", "reset") + "<id> " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + "\n"))
 					break
+				}
+			}
+
+		case "toggle", "switch":
+			switch cmdTokens[1] {
+			case "pretty":
+				connection.isPrettyEnabled = !connection.isPrettyEnabled
+				stream.Write([]byte("\n  Toggled pretty, set to " + strconv.FormatBool(connection.isPrettyEnabled) + "\n"))
+			case "color":
+				connection.isColorEnabled = !connection.isColorEnabled
+				stream.Write([]byte("\n  Toggled color, set to " + strconv.FormatBool(connection.isColorEnabled) + "\n"))
+			}
+
+		case "move", "go", "m":
+			switch cmdTokens[1] {
+			case "north", "n":
+				if world.nodeList[connection.session.character.locationID].exits[0] != -1 {
+					LeftNotifier(world, connection, "north")
+					connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[0]
+					HandleMovement(connection, world)
+					EnterNotifier(world, connection, "north")
+				} else {
+					stream.Write([]byte("\n  You cannot move in that direction!\n"))
+				}
+			case "south", "s":
+				if world.nodeList[connection.session.character.locationID].exits[1] != -1 {
+					LeftNotifier(world, connection, "south")
+					connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[1]
+					HandleMovement(connection, world)
+					EnterNotifier(world, connection, "south")
+				} else {
+					stream.Write([]byte("\n  You cannot move in that direction!\n"))
+				}
+			case "west", "w":
+				if world.nodeList[connection.session.character.locationID].exits[2] != -1 {
+					LeftNotifier(world, connection, "west")
+					connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[2]
+					HandleMovement(connection, world)
+					EnterNotifier(world, connection, "west")
+				} else {
+					stream.Write([]byte("\n  You cannot move in that direction!\n"))
+				}
+			case "east", "e":
+				if world.nodeList[connection.session.character.locationID].exits[3] != -1 {
+					LeftNotifier(world, connection, "east")
+					connection.session.character.locationID = world.nodeList[connection.session.character.locationID].exits[3]
+					HandleMovement(connection, world)
+					EnterNotifier(world, connection, "east")
+				} else {
+					stream.Write([]byte("\n  You cannot move in that direction!\n"))
 				}
 			}
 
@@ -361,10 +643,10 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						bpS := strconv.Itoa(bp)
 						if connection.session.character.coins >= int(bp) {
 							CreateAndInsertItem(connection, world, db, item)
-							stream.Write([]byte("\nYou buy 1x " + world.ItemTemplates[item].name + " for " + bpS + " coins from " + world.EntityTemplates[e.templateID].name + "\n"))
+							stream.Write([]byte("\n  You buy 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + bpS + color(connection, "reset", "reset") + " coins from " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 							connection.session.character.coins -= int(bp)
 						} else {
-							stream.Write([]byte("\nYou don't have enough coins to buy this item!\n"))
+							stream.Write([]byte(color(connection, "magenta", "tp") + "\n  You don't have enough coins to buy this item!\n" + color(connection, "reset", "reset")))
 						}
 						break
 					}
@@ -390,7 +672,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						for _, i := range world.items {
 							if i.locationType == "player" && i.locationID == connection.session.id && i.templateID == item && !i.equipped {
 								DeleteItem(connection, world, db, i.id)
-								stream.Write([]byte("\nYou sell 1x " + world.ItemTemplates[item].name + " for " + spS + " coins from " + world.EntityTemplates[e.templateID].name + "\n"))
+								stream.Write([]byte("\n  You sell 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + spS + color(connection, "reset", "reset") + " coins to " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 								connection.session.character.coins += int(sp)
 								break
 							}

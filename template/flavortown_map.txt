@@ -1,0 +1,80 @@
+!! THIS MAP IS AI GENERATED !!
+
+AI Generated map but the AI is dumb so this map is just garbage.
+Personally don't know how to map this anymore I went too overboard...
+
+╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                            FLAVORTOWN - COMPLETE ASCII MAP                                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+                                          [51]                    [52]
+                                      Racetrack                Workshop Loft
+                                        |                         |
+    [48]        [50]                  [30]                      [31]                      
+ Tunnel Exit  Lab Storage          Garage Exit            Gadget Workshop              
+      |         |                     |                         |                      
+  [28]────────[29]                  [17]────────────────────────[17]                      [53]
+Secret Tunnel  Secret Lab       Fraud Squad Garage                                   Garden Fountain
+      |                                 |                                                  |
+  [16]────────────────────────────────[9]                                              [32]────────[54]
+Evidence Room                    Barracks                                          Spice Gardens  Shed Attic
+                                     |                                                  |
+                                    [5]────────────[10]────────────[19]              [18]────────[33]
+                                Flavor Alley   Alley East      Dead End           Alley Exit  Garden Shed
+                                     |                             |                   |
+  [3]────────────────────────────────[3]                       [34]                [10]
+Fraud Squad HQ                                              Secret Room                |
+      |                                                           |                     |
+  [1]────────────────────────────────[1]                       [55]                 [5]
+     |                                                    Golden Spatula                |
+ [7]──────────────[13]──────────[24]                                                  |
+Living Qtrs:W  Chef's Commons  Kitchen                                                |
+     |                |             |                                                   |
+     |            [23]         [42]                                                    |
+     |          Storage      Test Kitchen                                              |
+     |             |             |                                                      |
+     |          [40]         [43]                                                      |
+     |       Storage Vault  Balcony                                                    |
+     |                                                                                  |
+[6]──────[7]                                                                            |
+Marine    |                                                                             |
+Market    |                                                                             |
+  |   [12]────────────[22]                                                             |
+  |Living Qtrs:N      |                                                                |
+  |       |       [38]   [39]                                                          |
+[11]      |     East Market Banner Alley                                               |
+Merchant  |                                                                             |
+Row   [20]──────[21]                                                                   |
+  |   Canal   Shipwright                                                               |
+  |   Bridge   Lounge                                                                  |
+  |      |       |                                                                     |
+  |   [35]  [36]   [37]                                                                |
+  |  Bridge  Vol   North                                                               |
+  |  View  Storage Plaza                                                               |
+  |                                                                                     |
+[4]──────────────[8]──────────[15]                                                     |
+Shipwrights'  Workshop     Ferry                                                       |
+Dock             |           |                                                          |
+  |          [14]────────[26]                                                          |
+  |        Dry Dock    Office                                                          |
+  |             |         |                                                             |
+  |          [25]────[45]                                                              |
+  |      Shipwrights' Lounge                                                           |
+  |             |      Balcony                                                         |
+  |          [44]                                                                      |
+  |       Trophy Room                                                                  |
+[2]────────────[0]                          [27]                                       |
+Bent Path  Welcome Plaza                Isle Dock                                      |
+                |                             |                                         |
+            [1]                          [47]                                          |
+        Flavor Fountain               Isle of Judgement                                |
+
+
+LEGEND:
+────  East-West connection
+  |   North-South connection
+[ID]  Room ID number
+
+Note: Due to the complexity of Flavortown's layout with 56 interconnected rooms,
+this map shows the general spatial relationships. Some connections may overlap.
+Refer to 002_rooms.sql for precise directional data for each room.

@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"math"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -20,6 +20,8 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 
 	chr := *conn.session.character
 	tEnt := world.entities[*conn.session.character.targetID]
+	cMin := world.EntityTemplates[tEnt.templateID].cMin
+	cMax := world.EntityTemplates[tEnt.templateID].cMax
 	var chrTotalDef int
 	for eq, i := range chr.equipment {
 		if eq != "" {
@@ -37,6 +39,13 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 	maxDodge := 80
 	pDodgeChance := int(float64(chr.baseStats.Agi) / float64(chr.baseStats.Agi+world.EntityTemplates[tEnt.templateID].stats.Agi) * float64(maxDodge))
 	eDodgeChance := int(float64(world.EntityTemplates[tEnt.templateID].stats.Agi) / float64(chr.baseStats.Agi+world.EntityTemplates[tEnt.templateID].stats.Agi) * float64(maxDodge))
+
+	pPower := chr.getEffectiveStat("str")
+	ePower := world.EntityTemplates[tEnt.templateID].stats.Str + world.EntityTemplates[tEnt.templateID].baseDef
+	powerRatio := float64(ePower) / float64(pPower+ePower)
+	exp := float64(world.EntityTemplates[tEnt.templateID].baseExp)
+	exp *= powerRatio
+	exp *= calcExpMultiplier(world.EntityTemplates[tEnt.templateID].level - chr.level)
 	// this method causes the same dodge chance, leaving it here if the new one doesnt work
 	/*	if chr.baseStats.Agi > world.EntityTemplates[tEnt.templateID].stats.Agi {
 			pDodgeChance = int(float64(chr.baseStats.Agi-world.EntityTemplates[tEnt.templateID].stats.Agi) / float64(chr.baseStats.Agi+world.EntityTemplates[tEnt.templateID].stats.Agi) * 100)
@@ -50,41 +59,81 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		}
 		eDodgeChance = Clamp(eDodgeChance, 0, 90)
 		pDodgeChance = Clamp(pDodgeChance, 0, 90)*/
-	fmt.Println(eDodgeChance)
-	fmt.Println(pDodgeChance)
 	if rand.Intn(100) <= eDodgeChance {
-		conn.store.Write([]byte("\nThe " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + " dodges your attack! (" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + ")" + "\n"))
+		conn.store.Write([]byte("\x1b[2K\r  The " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "red", "tp") + " dodges" + color(conn, "reset", "reset") + " your attack! (" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + ")" + "\n"))
 	} else {
 		world.entities[*conn.session.character.targetID].hp -= pFinalDam
-		conn.store.Write([]byte("\nYou damage the " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + " for " + strconv.Itoa(pFinalDam) + " (" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + ")" + "\n"))
+		conn.store.Write([]byte("\x1b[2K\r  You damage the " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + " for " + color(conn, "green", "tp") + strconv.Itoa(pFinalDam) + color(conn, "reset", "reset") + " (" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + ")" + "\n"))
 	}
 	if rand.Intn(100) <= pDodgeChance {
-		conn.store.Write([]byte("You dodge the " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + "'s attack! (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n"))
+		conn.store.Write([]byte("\x1b[2K\r  You " + color(conn, "green", "tp") + "dodge" + color(conn, "reset", "reset") + " the " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "'s attack! (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n\n> "))
 	} else {
 		conn.session.character.hp -= eFinalDam
-		conn.store.Write([]byte("The " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + " damages you for " + strconv.Itoa(eFinalDam) + " (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n"))
+		conn.store.Write([]byte("\x1b[2K\r  The " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + " damages you for " + color(conn, "red", "tp") + strconv.Itoa(eFinalDam) + color(conn, "reset", "reset") + " (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n\n> "))
 	}
 	if conn.session.character.hp <= 0 {
-		conn.store.Write([]byte("\nYou died!\n\n> "))
+		conn.store.Write([]byte(color(conn, "red", "tp") + "\x1b[2K\r\n  You died!" + color(conn, "reset", "reset") + ""))
+		conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You are teleported to spawn!" + color(conn, "reset", "reset") + "\n\n> "))
+		conn.session.character.hp = conn.session.character.maxHp
+		conn.session.character.locationID = 0
 		world.entities[*conn.session.character.targetID].inCombat = false
 		world.entities[*conn.session.character.targetID].targetID = nil
 		conn.session.character.inCombat = false
 		conn.session.character.targetID = nil
 		conn.session.character.targetType = nil
+		HandleMovement(conn, world)
+		conn.store.Write([]byte("\n> "))
 		return 1
 	}
 	if world.entities[*conn.session.character.targetID].hp <= 0 {
-		conn.store.Write([]byte("\nYou killed a " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + "!"))
-		c := rand.Intn(100)
+		conn.store.Write([]byte("\x1b[2K\r\n  You " + color(conn, "red", "tp") + "killed " + color(conn, "reset", "reset") + "a " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "!"))
+		c := rand.Intn(cMax-cMin) + cMin
 		conn.session.character.coins += c
-		fmt.Println(world.entities)
-		conn.store.Write([]byte("\nYou loot the " + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + "'s body and find " + strconv.Itoa(c) + " coins!\n\n> "))
+		conn.store.Write([]byte("\n  You " + color(conn, "yellow", "tp") + "loot" + color(conn, "reset", "reset") + " the " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "'s body and find " + color(conn, "yellow", "tp") + strconv.Itoa(c) + color(conn, "reset", "reset") + " coins!"))
+		for _, d := range world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].dropTable {
+			if rand.Intn(100) <= d.chance {
+				var qty int
+				if d.max-d.min == 0 {
+					qty = d.min
+				} else {
+					qty = rand.Intn(d.max-d.min) + d.min
+				}
+				conn.store.Write([]byte("\n  You find " + color(conn, "yellow", "tp") + strconv.Itoa(qty) + "x " + color(conn, "cyan", "tp") + world.ItemTemplates[d.itemTemplateID].name + color(conn, "reset", "reset") + " on the corpse!"))
+				/*for range qty {
+					CreateAndInsertItem(conn, world, db, d.itemTemplateID)
+				}*/
+				CreateAndInsertItemBatched(conn, world, db, d.itemTemplateID, qty)
+			}
+		}
+		conn.store.Write([]byte("\n"))
+		pLvl := conn.session.character.level
+		pExp := conn.session.character.exp
+		if math.Floor((float64(pExp)+exp)/100.0) > float64(pLvl) {
+			lvls := int(math.Floor(exp / 100.0))
+			trains := 5 * int(lvls)
+			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n"))
+			conn.store.Write([]byte("\n  Congrats!"))
+			conn.store.Write([]byte("\n  You gain " + color(conn, "yellow", "tp") + strconv.Itoa(lvls) + " level(s)" + color(conn, "reset", "reset") + " from this fight!"))
+			conn.store.Write([]byte("\n  You now have " + color(conn, "yellow", "tp") + strconv.Itoa(trains) + color(conn, "cyan", "tp") + " more trains" + color(conn, "reset", "reset") + "!\n\n> "))
+			conn.session.character.level += lvls
+			conn.session.character.trains += trains
+		} else {
+			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n\n> "))
+		}
+		conn.session.character.exp += int(exp)
+		if world.merchants[*conn.session.character.targetID] != nil {
+			db.Exec("DELETE FROM merchants WHERE id = ?", *conn.session.character.targetID)
+			db.Exec("DELETE FROM merchant_list WHERE id = ?", *conn.session.character.targetID)
+			delete(world.merchants, *conn.session.character.targetID)
+		}
 		db.Exec("DELETE FROM entities WHERE id = ?", *conn.session.character.targetID)
 		for i, id := range world.nodeList[conn.session.character.locationID].entityIDs {
 			if world.entities[id] == world.entities[*conn.session.character.targetID] {
 				world.nodeList[conn.session.character.locationID].entityIDs = slices.Delete(world.nodeList[conn.session.character.locationID].entityIDs, i, i+1)
+				break
 			}
 		}
+
 		conn.session.character.inCombat = false
 		conn.session.character.targetID = nil
 		conn.session.character.targetType = nil
@@ -135,21 +184,21 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 	p2DodgeChance := int(float64(p2Chr.baseStats.Agi) / float64(p1Chr.baseStats.Agi+p2Chr.baseStats.Agi) * float64(maxDodge))
 
 	if rand.Intn(100) <= p2DodgeChance {
-		p2Chr.conn.store.Write([]byte("\nYou dodge " + p1Chr.conn.session.username + "'s attack! (" + strconv.Itoa(p2Chr.hp) + ")"))
-		p1Chr.conn.store.Write([]byte("\n" + p2Chr.conn.session.username + " dodges your attack! (" + strconv.Itoa(p2Chr.hp) + ")"))
+		p2Chr.conn.store.Write([]byte("\x1b[2K\r  You dodge " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + "'s attack! (" + strconv.Itoa(p2Chr.hp) + ")\n"))
+		p1Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "red", "tp") + " dodges" + color(p1Chr.conn, "reset", "reset") + " your attack! (" + strconv.Itoa(p2Chr.hp) + ")\n"))
 	} else {
 		p2Chr.hp -= p1FinalDam
-		p1Chr.conn.store.Write([]byte("\nYou damage " + p2Chr.conn.session.username + " for " + strconv.Itoa(p1FinalDam) + " (" + strconv.Itoa(p2Chr.hp) + ")"))
-		p2Chr.conn.store.Write([]byte("\n" + p1Chr.conn.session.username + " damages you for " + strconv.Itoa(p1FinalDam) + " (" + strconv.Itoa(p2Chr.hp) + ")"))
+		p1Chr.conn.store.Write([]byte("\x1b[2K\r  You damage " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + " for " + color(p1Chr.conn, "green", "tp") + strconv.Itoa(p1FinalDam) + color(p1Chr.conn, "reset", "reset") + " (" + strconv.Itoa(p2Chr.hp) + ")\n"))
+		p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + " damages you for " + color(p2Chr.conn, "red", "tp") + strconv.Itoa(p1FinalDam) + color(p2Chr.conn, "reset", "reset") + " (" + strconv.Itoa(p2Chr.hp) + ")\n"))
 	}
 
 	if rand.Intn(100) <= p1DodgeChance {
-		p1Chr.conn.store.Write([]byte("\nYou dodge " + p2Chr.conn.session.username + "'s attack! (" + strconv.Itoa(p1Chr.hp) + ")\n"))
-		p2Chr.conn.store.Write([]byte("\n" + p1Chr.conn.session.username + " dodges your attack! (" + strconv.Itoa(p1Chr.hp) + ")\n"))
+		p1Chr.conn.store.Write([]byte("\x1b[2K\r  You dodge " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + "'s attack! (" + strconv.Itoa(p1Chr.hp) + ")\n\n> "))
+		p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "red", "tp") + " dodges" + color(p2Chr.conn, "reset", "reset") + " your attack! (" + strconv.Itoa(p1Chr.hp) + ")\n\n> "))
 	} else {
 		p1Chr.hp -= p2FinalDam
-		p1Chr.conn.store.Write([]byte("\n" + p2Chr.conn.session.username + " damages you for " + strconv.Itoa(p2FinalDam) + " (" + strconv.Itoa(p1Chr.hp) + ")\n"))
-		p2Chr.conn.store.Write([]byte("\nYou damage " + p1Chr.conn.session.username + " for " + strconv.Itoa(p2FinalDam) + " (" + strconv.Itoa(p1Chr.hp) + ")\n"))
+		p1Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + " damages you for " + color(p1Chr.conn, "red", "tp") + strconv.Itoa(p2FinalDam) + color(p1Chr.conn, "reset", "reset") + " (" + strconv.Itoa(p1Chr.hp) + ")\n\n> "))
+		p2Chr.conn.store.Write([]byte("\x1b[2K\r  You damage " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + " for " + color(p2Chr.conn, "green", "tp") + strconv.Itoa(p2FinalDam) + color(p2Chr.conn, "reset", "reset") + " (" + strconv.Itoa(p1Chr.hp) + ")\n\n> "))
 	}
 
 	if p2Chr.hp <= 0 {
@@ -159,21 +208,22 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		p1Chr.inCombat = false
 		p1Chr.targetID = nil
 		p1Chr.targetType = nil
-		p2Chr.conn.store.Write([]byte("\nYou died!"))
+		p2Chr.conn.store.Write([]byte(color(p2Chr.conn, "red", "tp") + "\x1b[2K\r\n  You died!" + color(p2Chr.conn, "reset", "reset")))
 		if p2Chr.coins == 0 {
-			conn.store.Write([]byte("\n" + p2Chr.conn.session.username + "didn't have any coins for you to loot!"))
+			conn.store.Write([]byte("\x1b[2K\r\n  " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + " didn't have any coins for you to loot!"))
 		} else {
 			c := rand.Intn(p2Chr.coins)
-			conn.store.Write([]byte("\nYou loot " + p2Chr.conn.session.username + "'s body to steal " + strconv.Itoa(c) + " coins!"))
-			p2Chr.conn.store.Write([]byte("\n" + conn.session.username + " steals " + strconv.Itoa(c) + " coins from you!"))
+			conn.store.Write([]byte("\n  You" + color(p1Chr.conn, "yellow", "tp") + " loot " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + "'s body to steal " + color(p1Chr.conn, "yellow", "tp") + strconv.Itoa(c) + color(p1Chr.conn, "reset", "reset") + " coins!"))
+			p2Chr.conn.store.Write([]byte("\n  " + color(p2Chr.conn, "cyan", "tp") + conn.session.username + color(p2Chr.conn, "reset", "reset") + " steals " + color(p2Chr.conn, "yelow", "tp") + strconv.Itoa(c) + color(p2Chr.conn, "reset", "reset") + " coins from you!"))
 			p1Chr.coins += c
 			p2Chr.coins -= c
 		}
-		p2Chr.conn.store.Write([]byte("\nYou are teleported to spawn!\n\n> "))
-		conn.store.Write([]byte("\nYou killed " + p2Chr.conn.session.username + "!\n\n> "))
+		p2Chr.conn.store.Write([]byte(color(p2Chr.conn, "green", "tp") + "\n  You are teleported to spawn!" + color(p2Chr.conn, "reset", "reset") + "\n\n> "))
+		conn.store.Write([]byte("\n  You " + color(p1Chr.conn, "red", "tp") + "killed " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + "!"))
 		p2Chr.hp = p2Chr.maxHp
 		HandleMovement(p2Chr.conn, world)
-		fmt.Println("\n\n> ")
+		p1Chr.conn.store.Write([]byte("\n\n> "))
+		p2Chr.conn.store.Write([]byte("\n\n> "))
 		return 1
 	} else if p1Chr.hp <= 0 {
 		p2Chr.inCombat = false
@@ -182,23 +232,22 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		p1Chr.inCombat = false
 		p1Chr.targetID = nil
 		p1Chr.targetType = nil
-		p2Chr.conn.store.Write([]byte("\nYou killed " + conn.session.username + "!\n\n> "))
-		conn.store.Write([]byte("\nYou died!"))
+		p1Chr.conn.store.Write([]byte(color(p1Chr.conn, "red", "tp") + "\x1b[2K\r\n  You died!" + color(p1Chr.conn, "reset", "reset")))
 		if p1Chr.coins == 0 {
-			p1Chr.conn.store.Write([]byte("\n" + conn.session.username + "didn't have any coins for you to loot!"))
+			p2Chr.conn.store.Write([]byte("\x1b[2K\r\n  " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + " didn't have any coins for you to loot!"))
 		} else {
 			c := rand.Intn(p1Chr.coins)
-			p2Chr.conn.store.Write([]byte("\nYou loot " + conn.session.username + "'s body to steal " + strconv.Itoa(c) + " coins!"))
-			p1Chr.conn.store.Write([]byte("\n" + p2Chr.conn.session.username + " steals " + strconv.Itoa(c) + " coins from you!"))
+			p2Chr.conn.store.Write([]byte("\n  You" + color(p2Chr.conn, "yellow", "tp") + " loot " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + "'s body to steal " + color(p2Chr.conn, "yellow", "tp") + strconv.Itoa(c) + color(p2Chr.conn, "reset", "reset") + " coins!"))
+			p1Chr.conn.store.Write([]byte("\n  " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + " steals " + color(p1Chr.conn, "yelow", "tp") + strconv.Itoa(c) + color(p1Chr.conn, "reset", "reset") + " coins from you!"))
 			p2Chr.coins += c
 			p1Chr.coins -= c
 		}
-		p1Chr.conn.store.Write([]byte("\nYou are teleported to spawn!\n\n> "))
-		conn.store.Write([]byte("\nYou killed " + p1Chr.conn.session.username + "!\n\n> "))
-		conn.store.Write([]byte("\nYou are teleported to spawn!"))
+		p1Chr.conn.store.Write([]byte(color(p1Chr.conn, "green", "tp") + "\n  You are teleported to spawn!" + color(p1Chr.conn, "reset", "reset") + "\n\n> "))
+		p2Chr.conn.store.Write([]byte("\n  You " + color(p2Chr.conn, "red", "tp") + "killed " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + "!"))
 		p1Chr.hp = p1Chr.maxHp
-		HandleMovement(conn, world)
-		fmt.Println("\n\n> ")
+		HandleMovement(p1Chr.conn, world)
+		p2Chr.conn.store.Write([]byte("\n\n> "))
+		p1Chr.conn.store.Write([]byte("\n\n> "))
 		return 1
 	}
 	return 0

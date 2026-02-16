@@ -3,9 +3,24 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 )
 
 func dbInit(db *sql.DB) {
+	/*db.Exec(`
+		CREATE TABLE IF NOT EXISTS spawners (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			locationID INT,
+			templateType STRING,
+			templateID INT,
+			duration INT,
+			maxSpawns INT
+		)
+	`)
+
 	db.Exec(`
 		CREATE TABLE IF NOT EXISTS rooms (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,6 +43,9 @@ func dbInit(db *sql.DB) {
 			stam INT,
 			int INT,
 
+			exp INT,
+			level INT,
+			trains INT,
 			maxHp INT,
 			coins INT,
 			locationID INT
@@ -55,6 +73,14 @@ func dbInit(db *sql.DB) {
 	`)
 
 	db.Exec(`
+		CREATE TABLE IF NOT EXISTS item_template_effects (
+			sourceID INT,
+			effect STRING,
+			value INT
+		)
+	`)
+
+	db.Exec(`
 		CREATE TABLE IF NOT EXISTS items (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			templateID INT,
@@ -69,17 +95,19 @@ func dbInit(db *sql.DB) {
 			id INTEGER PRIMARY KEY,
 			name STRING NOT NULL,
 			description STRING NOT NULL,
-			
+
 			str INT,
 			dex INT,
 			agi INT,
 			stam INT,
 			int INT,
 
+			level INT,
 			aggro INT,
 			maxHp INT,
 			baseDam INT,
 			baseDef INT,
+			baseExp INT,
 			cMin INT,
 			cMax INT
 		)
@@ -119,14 +147,30 @@ func dbInit(db *sql.DB) {
 		)
 	`)
 
-	db.Exec(
-		"INSERT OR IGNORE INTO players (username, password, hp, str, dex, agi, stam, int, maxHp, coins, locationID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		"testplayer", "hello", 100, 1, 1, 1, 1, 1, 100, 0, 0,
-	)
-
 	var exists int
 	err := db.QueryRow("SELECT * FROM rooms WHERE id = ?", 1).Scan(&exists)
 	if err == sql.ErrNoRows {
+		db.Exec(
+			"INSERT OR IGNORE INTO spawners (locationID, templateType, templateID, duration, maxSpawns) VALUES (?, ?, ?, ?, ?)",
+			0, "entity", 0, 8, 4,
+		)
+		db.Exec(
+			"INSERT OR IGNORE INTO spawners (locationID, templateType, templateID, duration, maxSpawns) VALUES (?, ?, ?, ?, ?)",
+			3, "entity", 2, 10, 2,
+		)
+		db.Exec(
+			"INSERT OR IGNORE INTO spawners (locationID, templateType, templateID, duration, maxSpawns) VALUES (?, ?, ?, ?, ?)",
+			1, "item", 0, 5, 5,
+		)
+		db.Exec(
+			"INSERT OR IGNORE INTO spawners (locationID, templateType, templateID, duration, maxSpawns) VALUES (?, ?, ?, ?, ?)",
+			3, "item", 1, 5, 2,
+		)
+		db.Exec(
+			"INSERT OR IGNORE INTO spawners (locationID, templateType, templateID, duration, maxSpawns) VALUES (?, ?, ?, ?, ?)",
+			2, "item", 2, 5, 10,
+		)
+
 		db.Exec(
 			"INSERT OR IGNORE INTO rooms (id, name, description, n, s, w, e) VALUES (?, ?, ?, ?, ?, ?, ?)",
 			0, "Green Glade", "You look around to see tall standing trees towering over you...", 1, -1, -1, -1,
@@ -150,8 +194,17 @@ func dbInit(db *sql.DB) {
 		)
 
 		db.Exec(
+			"INSERT OR IGNORE INTO item_template_effects (sourceID, effect, value) VALUES (?, ?, ?)",
+			2, "hp", 20,
+		)
+
+		db.Exec(
 			"INSERT OR IGNORE INTO entity_template_drops (entityTemplateID, itemTemplateID, chance, min, max) VALUES (?, ?, ?, ?, ?)",
 			0, 0, 50, 1, 1,
+		)
+		db.Exec(
+			"INSERT OR IGNORE INTO entity_template_drops (entityTemplateID, itemTemplateID, chance, min, max) VALUES (?, ?, ?, ?, ?)",
+			0, 2, 50, 8, 12,
 		)
 
 		prom, _ := db.Exec(
@@ -172,15 +225,6 @@ func dbInit(db *sql.DB) {
 	}
 
 	db.Exec(
-		"INSERT OR IGNORE INTO items (templateID, locationType, locationID, equipped) VALUES (?, ?, ?, ?)",
-		0, "room", 1, false,
-	)
-	db.Exec(
-		"INSERT OR IGNORE INTO items (templateID, locationType, locationID, equipped) VALUES (?, ?, ?, ?)",
-		1, "room", 3, false,
-	)
-
-	db.Exec(
 		"INSERT OR IGNORE INTO item_templates (id, name, description, itype, baseDam, baseDef, baseValue) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		0, "Rusted Spoon", "Looks rusted.", "mainhand", 10, 0, 11,
 	)
@@ -188,28 +232,65 @@ func dbInit(db *sql.DB) {
 		"INSERT OR IGNORE INTO item_templates (id, name, description, itype, baseDam, baseDef, baseValue) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		1, "Shadow Helmet", "Black.", "head", 10, 20, 11,
 	)
-
 	db.Exec(
-		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, aggro, maxHp, baseDam, baseDef, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		0, "Green Slime", "Looks jiggly.", 1, 1, 1, 1, 1, 0, 50, 3, 3, 70, 100,
-	)
-	db.Exec(
-		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, aggro, maxHp, baseDam, baseDef, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		1, "Shayla, the Merchant", "Looks like she has something to sell!", 10, 10, 10, 10, 10, 0, 10000, 300, 300, 18000, 21000,
-	)
-	db.Exec(
-		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, aggro, maxHp, baseDam, baseDef, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		2, "King's Last Guard", "Looks like it has a sad backstory.", 20, 20, 20, 20, 20, 0, 200, 30, 30, 1800, 2100,
+		"INSERT OR IGNORE INTO item_templates (id, name, description, itype, baseDam, baseDef, baseValue) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		2, "Black Apple", "Black.", "consumable", 0, 0, 20,
 	)
 
 	db.Exec(
-		"INSERT OR IGNORE INTO entities (templateID, hp, locationID) VALUES (?, ?, ?)",
-		0, 0, 0,
+		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		0, "Green Slime", "Looks jiggly.", 1, 1, 1, 1, 1, 2, 0, 50, 3, 3, 10, 70, 100,
 	)
 	db.Exec(
-		"INSERT OR IGNORE INTO entities (templateID, hp, locationID) VALUES (?, ?, ?)",
-		2, 0, 3,
+		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		1, "Shayla, the Merchant", "Looks like she has something to sell!", 10, 10, 10, 10, 20, 20, 0, 10000, 300, 300, 1000, 18000, 21000,
 	)
+	db.Exec(
+		"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		2, "King's Last Guard", "Looks like it has a sad backstory.", 20, 20, 20, 20, 20, 10, 0, 200, 30, 30, 500, 1800, 2100,
+	)*/
+
+	err := loadSQL(db, "./template")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func loadSQL(db *sql.DB, dir string) error {
+	var name string
+	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name="rooms"`).Scan(&name)
+	if err != sql.ErrNoRows {
+		fmt.Println("DB already exists!")
+		return nil
+	}
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+
+	for _, f := range files {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".sql") {
+			continue
+		}
+
+		path := filepath.Join(dir, f.Name())
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if _, err := db.Exec(string(content)); err != nil {
+			return err
+		}
+
+		fmt.Println("DB file loaded!")
+	}
+
+	return nil
 }
 
 func objectsInit(db *sql.DB, world *World) {
@@ -227,7 +308,26 @@ func objectsInit(db *sql.DB, world *World) {
 		r_rows.Scan(&rID, &name, &desc, &n, &s, &w, &e)
 
 		room := Room{rID, name, desc, [4]int{n, s, w, e}, []int{}, []int{}}
-		world.nodeList = append(world.nodeList, room)
+		world.nodeList[rID] = &room
+	}
+
+	s_rows, err := db.Query("SELECT id, locationID, templateType, templateID, duration, maxSpawns FROM spawners")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer s_rows.Close()
+
+	for s_rows.Next() {
+		var id int
+		var lID int
+		var tType string
+		var tID int
+		var dur int
+		var maxSpawns int
+		s_rows.Scan(&id, &lID, &tType, &tID, &dur, &maxSpawns)
+
+		spawner := Spawner{id, lID, tType, tID, dur, maxSpawns, int(world.tick) + dur}
+		world.spawners = append(world.spawners, spawner)
 	}
 
 	m_rows, err := db.Query("SELECT entityID, sellRate, buyRate FROM merchants")
@@ -260,8 +360,7 @@ func objectsInit(db *sql.DB, world *World) {
 		world.merchants[mID].list = append(world.merchants[mID].list, tID)
 	}
 
-	//"INSERT OR IGNORE INTO entity_templates (id, name, description, str, dex, agi, stam, int, aggro, maxHp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-	et_rows, err := db.Query("SELECT id, name, description, str, dex, agi, stam, int, aggro, maxHp, baseDam, baseDef, cMin, cMax FROM entity_templates")
+	et_rows, err := db.Query("SELECT id, name, description, str, dex, agi, stam, int, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax FROM entity_templates")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -272,14 +371,16 @@ func objectsInit(db *sql.DB, world *World) {
 		var name string
 		var desc string
 		var stats Stats
+		var level int
 		var agI int
 		var aggro bool
 		var maxHp int
 		var baseDam int
 		var baseDef int
+		var baseExp int
 		var cMin int
 		var cMax int
-		et_rows.Scan(&id, &name, &desc, &stats.Str, &stats.Dex, &stats.Agi, &stats.Stam, &stats.Int, &agI, &maxHp, &baseDam, &baseDef, &cMin, &cMax)
+		et_rows.Scan(&id, &name, &desc, &stats.Str, &stats.Dex, &stats.Agi, &stats.Stam, &stats.Int, &level, &agI, &maxHp, &baseDam, &baseDef, &baseExp, &cMin, &cMax)
 
 		if agI == 0 {
 			aggro = false
@@ -287,7 +388,7 @@ func objectsInit(db *sql.DB, world *World) {
 			aggro = true
 		}
 
-		template := EntityTemplate{id, name, desc, stats, aggro, maxHp, baseDam, baseDef, cMin, cMax, []DropEntry{}}
+		template := EntityTemplate{id, name, desc, stats, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax, []DropEntry{}}
 		world.EntityTemplates[id] = &template
 	}
 
@@ -321,10 +422,6 @@ func objectsInit(db *sql.DB, world *World) {
 		var eHp int
 		var lID int
 		ent_rows.Scan(&eID, &tID, &eHp, &lID)
-		for _, b := range world.EntityTemplates {
-			// fmt.Println(a)
-			fmt.Println(b)
-		}
 		eHp = world.EntityTemplates[tID].maxHp
 
 		ent := Entity{eID, tID, nil, false, eHp, lID}
@@ -347,7 +444,7 @@ func objectsInit(db *sql.DB, world *World) {
 		var baseDef int
 		var baseValue int
 		t_rows.Scan(&tID, &tName, &desc, &iType, &baseDam, &baseDef, &baseValue)
-		world.ItemTemplates[tID] = &ItemTemplate{tID, tName, desc, iType, baseDam, baseDef, baseValue, []ItemModifier{}}
+		world.ItemTemplates[tID] = &ItemTemplate{tID, tName, desc, iType, baseDam, baseDef, baseValue, []ItemModifier{}, []ItemEffect{}}
 	}
 
 	tm_rows, err := db.Query("SELECT sourceID, stat, value FROM item_template_modifiers")
@@ -362,6 +459,20 @@ func objectsInit(db *sql.DB, world *World) {
 		var value int
 		tm_rows.Scan(&sourceID, &stat, &value)
 		world.ItemTemplates[sourceID].modifiers = append(world.ItemTemplates[sourceID].modifiers, ItemModifier{stat, value})
+	}
+
+	te_rows, err := db.Query("SELECT sourceID, effect, value FROM item_template_effects")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer te_rows.Close()
+
+	for te_rows.Next() {
+		var sourceID int
+		var effect string
+		var value int
+		te_rows.Scan(&sourceID, &effect, &value)
+		world.ItemTemplates[sourceID].effects = append(world.ItemTemplates[sourceID].effects, ItemEffect{effect, value})
 	}
 
 	rows, err := db.Query("SELECT id, templateID, locationType, locationID, equipped FROM items")
