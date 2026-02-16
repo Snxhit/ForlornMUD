@@ -619,7 +619,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			}
 
 		default:
-			stream.Write([]byte("Command not found!"))
+			stream.Write([]byte("\n  Command not found!\n"))
 		}
 
 	case 3:
@@ -639,6 +639,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
+						itemInList := false
+						for _, merchantItem := range world.merchants[en].list {
+							if merchantItem == item {
+								itemInList = true
+								break
+							}
+						}
+						if !itemInList {
+							break
+						}
 						bp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate)
 						bpS := strconv.Itoa(bp)
 						if connection.session.character.coins >= int(bp) {
@@ -668,6 +678,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
+						itemInList := false
+						for _, merchantItem := range world.merchants[en].list {
+							if merchantItem == item {
+								itemInList = true
+								break
+							}
+						}
+						if !itemInList {
+							break
+						}
 						sp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].sellRate)
 						spS := strconv.Itoa(sp)
 						for _, i := range world.items {
