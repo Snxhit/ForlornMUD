@@ -37,8 +37,8 @@ func ticks(world *World, db *sql.DB) {
 					case &TargetEntity:
 						r := combatEntity(world, conn, db)
 						if conn.isClientWeb {
-							conn.store.Write([]byte("\x01COMBAT " + "type:entity" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"" + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + "\" enemyHp:" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + " enemyMaxHp:" + strconv.Itoa(world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].maxHp) + "\n"))
-							conn.store.Write([]byte("\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+							conn.store.Write([]byte("\n\x01COMBAT " + "type:entity" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"" + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + "\" enemyHp:" + strconv.Itoa(world.entities[*conn.session.character.targetID].hp) + " enemyMaxHp:" + strconv.Itoa(world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].maxHp) + "\n"))
+							conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
 						}
 						if r == 1 {
 							continue
@@ -46,16 +46,13 @@ func ticks(world *World, db *sql.DB) {
 					case &TargetPlayer:
 						r := combatPlayer(world, conn)
 						if conn.isClientWeb {
-							conn.store.Write([]byte("\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"" + world.characters[*conn.session.character.targetID].conn.session.username + "\" enemyHp:" + strconv.Itoa(world.characters[*conn.session.character.targetID].hp) + " enemyMaxHp:" + strconv.Itoa(world.characters[*conn.session.character.targetID].maxHp) + "\n"))
-							conn.store.Write([]byte("\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+							conn.store.Write([]byte("\n\x01COMBAT " + "type:player" + " hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"" + world.characters[*conn.session.character.targetID].conn.session.username + "\" enemyHp:" + strconv.Itoa(world.characters[*conn.session.character.targetID].hp) + " enemyMaxHp:" + strconv.Itoa(world.characters[*conn.session.character.targetID].maxHp) + "\n"))
+							conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
 						}
 						if r == 1 {
 							continue
 						}
 					}
-				}
-				if conn.isClientWeb {
-					conn.store.Write([]byte("\n\x01SELF " + "hp:" + strconv.Itoa(conn.session.character.hp) + " coins:" + strconv.Itoa(conn.session.character.coins)))
 				}
 			}
 			for i := range world.spawners {

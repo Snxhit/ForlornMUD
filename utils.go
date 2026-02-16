@@ -133,7 +133,7 @@ func HandleLook(world *World, connection *ConnectionData) {
 		}
 	}
 	if connection.isClientWeb {
-		stream.Write([]byte("\x01EXITS " + state + "\n"))
+		stream.Write([]byte("\n\x01EXITS " + state + "\n"))
 	}
 }
 

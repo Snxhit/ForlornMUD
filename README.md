@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771177778/Untitled197_20260206224254_vskafj.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-79h%2009m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-81h%2005m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -195,7 +195,7 @@ This enables playing from the browser without requiring direct TCP support.
 - **Combat system**<br>
 Item drops, coins, exp, levels, and more!
 
-  ![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_1_dxk4oq.png)
+  ![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_1_dxk4oq.png)<br>
 Defeat, respawning system
 
   ![Combat System 2](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-38_tw4ceh.png)
@@ -251,7 +251,7 @@ Building this project taught me quite a lot:
 I'm passionate about building interactive multiplayer games and learning new languages.<br>
 **ForlornMUD** is my very first major Go project (There will definitely be more!), and it reflects my love for simulated economies, text based multiplayer games alike!
 
-- GitHub: [@Snxhit]()
+- GitHub: [@Snxhit](https://github.com/Snxhit)
 - LinkedIn: Snxhit (Unavailable for now)
 - Email: [developer@snxhit.me](mailto:developer@snxhit.me)
 
@@ -259,9 +259,9 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 ## Project Status
 
-**Version**: v0.0.7<br>
-**Latest Release Version**: None<br>
-**Time Spent**: 79 Hours 09 Minutes<br>
+**Version**: v0.1.0<br>
+**Latest Release Version**: v0.1.0<br>
+**Time Spent**: 81 Hours 05 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---
