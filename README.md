@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771271258/Untitled197_20260216231412_rdbuqx.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-81h%2005m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-84h%2036m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -259,9 +259,9 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 ## Project Status
 
-**Version**: v0.1.0<br>
-**Latest Release Version**: v0.1.0<br>
-**Time Spent**: 81 Hours 05 Minutes<br>
+**Version**: v0.1.1<br>
+**Latest Release Version**: v0.1.1<br>
+**Time Spent**: 84 Hours 36 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---
