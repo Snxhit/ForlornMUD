@@ -638,7 +638,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							matchBool = true
 						}
 					}
-					if matchBool && world.merchants[en] != nil {
+					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
 						bp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate)
 						bpS := strconv.Itoa(bp)
 						if connection.session.character.coins >= int(bp) {
@@ -667,7 +667,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							matchBool = true
 						}
 					}
-					if matchBool && world.merchants[en] != nil {
+					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
 						sp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].sellRate)
 						spS := strconv.Itoa(sp)
 						for _, i := range world.items {
