@@ -139,7 +139,7 @@ func HandleLook(world *World, connection *ConnectionData) {
 
 func LeftNotifier(world *World, connection *ConnectionData, dir string) {
 	for _, conn := range world.connections {
-		if conn.session.character.locationID == connection.session.character.locationID && conn.session.id != connection.session.id {
+		if conn.session.authorized && conn.session.character.locationID == connection.session.character.locationID && conn.session.id != connection.session.id {
 			conn.store.Write([]byte("\x1b[2K\r  " + color(conn, "cyan", "tp") + " " + color(conn, "yellow", "tp") + connection.session.username + color(conn, "reset", "reset") + " left towards " + dir + ".\n\n> "))
 		}
 	}
@@ -147,7 +147,7 @@ func LeftNotifier(world *World, connection *ConnectionData, dir string) {
 
 func EnterNotifier(world *World, connection *ConnectionData, dir string) {
 	for _, conn := range world.connections {
-		if conn.session.character.locationID == connection.session.character.locationID && conn.session.id != connection.session.id {
+		if conn.session.authorized && conn.session.character.locationID == connection.session.character.locationID && conn.session.id != connection.session.id {
 			conn.store.Write([]byte("\x1b[2K\r  " + color(conn, "cyan", "tp") + " " + color(conn, "yellow", "tp") + connection.session.username + color(conn, "reset", "reset") + " entered from " + dir + ".\n\n> "))
 		}
 	}
