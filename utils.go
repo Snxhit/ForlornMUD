@@ -178,7 +178,7 @@ func calcExpMultiplier(diff int) float64 {
 	}
 }
 
-func printProfileCard(connection *ConnectionData, nameMedian int, c string, t string, lvl string, exp string, expBars int, str string, dex string, agi string, stam string, int string, cardLength int, eList [6]string) {
+func printProfileCard(connection *ConnectionData, nameMedian int, c string, t string, lvl string, exp string, expBars int, str string, dex string, agi string, stam string, int string, cardLength int, eList [6]string, hp string, maxHp string, hpBars int) {
 	stream := connection.store
 
 	if !connection.isPrettyEnabled {
@@ -211,6 +211,15 @@ func printProfileCard(connection *ConnectionData, nameMedian int, c string, t st
 		stream.Write([]byte("  |" + color(connection, "cyan", "tp") + " Trains:" + color(connection, "reset", "reset") + " [ " + color(connection, "cyan", "tp") + strings.Repeat("0", 6-len(t)) + t + color(connection, "reset", "reset") + " ] |" + "     [" + color(connection, "blue", "tp") + strings.Repeat("#", expBars) + color(connection, "reset", "reset") + strings.Repeat("-", 20-expBars) + "]" + strings.Repeat(" ", cardLength-48) + "|\n"))
 		stream.Write([]byte("  |" + strings.Repeat(" ", 20) + "|" + strings.Repeat(" ", cardLength-21) + "|\n"))
 		stream.Write([]byte("  +" + strings.Repeat("-", 20) + "+" + strings.Repeat("-", cardLength-21) + "+\n"))
+		stream.Write([]byte("  |" + strings.Repeat(" ", cardLength) + "|\n"))
+		stream.Write([]byte("  |" + " Health Info  :" + strings.Repeat(" ", cardLength-15) + "|\n"))
+		stream.Write([]byte("  |" + color(connection, "red", "tp") + "   Max HP     :" + color(connection, "reset", "reset") + " [ " + strings.Repeat("0", 7-len(maxHp)) + maxHp + " ] " + strings.Repeat(" ", cardLength-28) + "|\n"))
+		stream.Write([]byte("  |" + color(connection, "red", "tp") + "   Current HP :" + color(connection, "reset", "reset") + " [ " + strings.Repeat("0", 7-len(hp)) + hp + " ] " + strings.Repeat(" ", cardLength-28) + "|\n"))
+		//stream.Write([]byte("  |" + color(connection, "red", "tp") + "   Bar        :" + color(connection, "reset", "reset") + strings.Repeat(" ", cardLength-35) + "|\n"))
+		stream.Write([]byte("  |" + "     [" + color(connection, "red", "tp") + strings.Repeat("#", hpBars) + color(connection, "reset", "reset") + strings.Repeat("-", 25-hpBars) + "]" + strings.Repeat(" ", cardLength-32) + "|\n"))
+		stream.Write([]byte("  |" + strings.Repeat(" ", cardLength) + "|\n"))
+		stream.Write([]byte("  +" + strings.Repeat("-", cardLength) + "+\n"))
+
 	} else {
 		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + connection.session.username + color(connection, "reset", "reset")
 		stream.Write([]byte("\n  ╭" + strings.Repeat("─", cardLength) + "╮\n"))
@@ -240,7 +249,15 @@ func printProfileCard(connection *ConnectionData, nameMedian int, c string, t st
 		stream.Write([]byte("  │" + strings.Repeat(" ", 20) + "│" + color(connection, "blue", "tp") + "   Progress : " + color(connection, "reset", "reset") + strings.Repeat(" ", cardLength-35) + "│\n"))
 		stream.Write([]byte("  │" + color(connection, "cyan", "tp") + " Trains:" + color(connection, "reset", "reset") + " [ " + color(connection, "cyan", "tp") + strings.Repeat("0", 6-len(t)) + t + color(connection, "reset", "reset") + " ] │" + "     [" + color(connection, "blue", "tp") + strings.Repeat("█", expBars) + color(connection, "reset", "reset") + strings.Repeat("░", 20-expBars) + "]" + strings.Repeat(" ", cardLength-48) + "│\n"))
 		stream.Write([]byte("  │" + strings.Repeat(" ", 20) + "│" + strings.Repeat(" ", cardLength-21) + "│\n"))
-		stream.Write([]byte("  ╰" + strings.Repeat("─", 20) + "┴" + strings.Repeat("─", cardLength-21) + "╯\n"))
+		stream.Write([]byte("  ├" + strings.Repeat("─", 20) + "┴" + strings.Repeat("─", cardLength-21) + "┤\n"))
+		stream.Write([]byte("  │" + strings.Repeat(" ", cardLength) + "│\n"))
+		stream.Write([]byte("  │" + " Health Info  :" + strings.Repeat(" ", cardLength-15) + "│\n"))
+		stream.Write([]byte("  │" + color(connection, "red", "tp") + "   Max HP     :" + color(connection, "reset", "reset") + " [ " + strings.Repeat("0", 7-len(maxHp)) + maxHp + " ] " + strings.Repeat(" ", cardLength-28) + "│\n"))
+		stream.Write([]byte("  │" + color(connection, "red", "tp") + "   Current HP :" + color(connection, "reset", "reset") + " [ " + strings.Repeat("0", 7-len(hp)) + hp + " ] " + strings.Repeat(" ", cardLength-28) + "│\n"))
+		//stream.Write([]byte("  │" + color(connection, "red", "tp") + "   Bar        :" + color(connection, "reset", "reset") + strings.Repeat(" ", cardLength-35) + "│\n"))
+		stream.Write([]byte("  │" + "     [" + color(connection, "red", "tp") + strings.Repeat("█", hpBars) + color(connection, "reset", "reset") + strings.Repeat("░", 25-hpBars) + "]" + strings.Repeat(" ", cardLength-32) + "│\n"))
+		stream.Write([]byte("  │" + strings.Repeat(" ", cardLength) + "│\n"))
+		stream.Write([]byte("  ╰" + strings.Repeat("─", cardLength) + "╯\n"))
 	}
 }
 

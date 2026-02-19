@@ -128,9 +128,42 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			lvl := strconv.Itoa(connection.session.character.level)
 			exp := strconv.Itoa(connection.session.character.exp)
 			expBars := (connection.session.character.exp % 100) / 5
+			hp := strconv.Itoa(connection.session.character.hp)
+			maxHp := strconv.Itoa(connection.session.character.maxHp)
+			hpBars := int(math.Floor(float64(connection.session.character.hp)/float64(connection.session.character.maxHp)*100)) / 4
 			s := connection.session.character.baseStats
 			str, dex, agi, stam, int := strconv.Itoa(s.Str), strconv.Itoa(s.Dex), strconv.Itoa(s.Agi), strconv.Itoa(s.Stam), strconv.Itoa(s.Int)
-			printProfileCard(connection, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList)
+			printProfileCard(connection, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
+
+		// all the case 2 or 3s
+		case "help", "h":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <query>\n"))
+		case "pickup", "take", "pick", "collect":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "drop", "put", "throw":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "examine":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "equip", "wear", "eq":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "unequip", "remove", "uneq":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <slot>\n"))
+		case "use", "u":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "fight", "attack", "kick", "f":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "train":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
+		case "list", "browse":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "toggle", "switch":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <option>\n"))
+		case "move", "go", "m":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <n|s|w|e>\n"))
+		case "buy":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
+		case "sell":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <index_item> <entity>\n"))
 
 		default:
 			stream.Write([]byte("\n  Command not found!\n"))
@@ -140,9 +173,10 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 		switch cmdTokens[0] {
 		case "help", "h":
 			printHelpFile(cmdTokens[1], connection)
-		case "pickup", "take", "pick":
+		case "pickup", "take", "pick", "collect":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
+				itemFound := false
 				for _, id := range world.nodeList[connection.session.character.locationID].itemIDs {
 					keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[world.items[id].templateID].name), func(r rune) bool {
 						return r == ' ' || r == ','
@@ -160,10 +194,12 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
 						world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
 						fmt.Println(err)
+						itemFound = true
 						break
-					} else {
-						stream.Write([]byte("\n  There is no such item.\n"))
 					}
+				}
+				if !itemFound {
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
 				if len(world.nodeList[connection.session.character.locationID].itemIDs) > i {
@@ -174,12 +210,13 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
 					fmt.Println(err)
 				} else {
-					stream.Write([]byte("\n  There is no such item.\n"))
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 		case "drop", "put", "throw":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
+				itemFound := false
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id {
 						id := item.id
@@ -199,9 +236,13 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, id)
 							_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, id)
 							fmt.Println(err)
+							itemFound = true
 							break
 						}
 					}
+				}
+				if !itemFound {
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
 				var playerItems []int
@@ -218,7 +259,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, playerItems[i])
 					fmt.Println(err)
 				} else {
-					stream.Write([]byte("\n  There is no such item."))
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 		case "examine":
@@ -241,6 +282,9 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 				}
+				if itemT == nil {
+					stream.Write([]byte("\n  Item not found!\n"))
+				}
 			} else {
 				var playerItems []int
 				for _, item := range world.items {
@@ -251,7 +295,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				if len(playerItems) > i {
 					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
 				} else {
-					stream.Write([]byte("\n  There is no such item.\n"))
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 			if itemT != nil {
@@ -261,6 +305,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				if slices.Contains(e, itemT.itype) {
 					stream.Write([]byte("\n  Type:" + color(connection, "green", "tp") + " Equipment\n" + color(connection, "reset", "reset")))
 					stream.Write([]byte("  Slot: " + color(connection, "magenta", "tp") + itemT.itype + color(connection, "reset", "reset")))
+					stream.Write([]byte("\n\n  Base Damage: " + color(connection, "red", "tp") + strconv.Itoa(itemT.baseDam) + color(connection, "reset", "reset") + "\n"))
+					stream.Write([]byte("  Base Defense: " + color(connection, "red", "tp") + strconv.Itoa(itemT.baseDef) + color(connection, "reset", "reset")))
 				} else {
 					stream.Write([]byte("\n  Type:" + color(connection, "green", "tp") + " Consumable" + color(connection, "reset", "reset")))
 					for _, eff := range itemT.effects {
@@ -281,6 +327,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 		case "equip", "wear", "eq":
 			valid, i := validateInt(cmdTokens[1])
 			if !valid {
+				itemFound := false
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
 						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[item.templateID].name), func(r rune) bool {
@@ -316,9 +363,13 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", true, item.id)
 							fmt.Println(err)
 							connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] = item.id
+							itemFound = true
 							break
 						}
 					}
+				}
+				if !itemFound {
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
 				var playerItems []int
@@ -353,7 +404,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					fmt.Println(connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype])
 					connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype] = playerItems[i]
 				} else {
-					stream.Write([]byte("\n  There is no such item.\n"))
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 		case "unequip", "remove", "uneq":
@@ -424,7 +475,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					switch effect.effect {
 					case "hp":
 						if connection.session.character.hp != connection.session.character.maxHp {
-							stream.Write([]byte("\n  You use a " + color(connection, "cyan", "tp") + itemT.name + color(connection, "reset", "reset") + " to heal " + color(connection, "red", "tp") + strconv.Itoa(effect.value) + color(connection, "reset", "reset") + " hp!\n"))
+							stream.Write([]byte("\n  You use a " + color(connection, "cyan", "tp") + itemT.name + color(connection, "reset", "reset") + " to heal " + color(connection, "red", "tp") + strconv.Itoa(effect.value) + color(connection, "reset", "reset") + " hp! (" + strconv.Itoa(connection.session.character.hp) + "/" + strconv.Itoa(connection.session.character.maxHp) + ")\n"))
 							if connection.isClientWeb {
 								connection.store.Write([]byte("\x01SELF " + "hp:" + strconv.Itoa(connection.session.character.hp) + " coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
 							}
@@ -438,7 +489,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 				}
 			} else {
-				stream.Write([]byte("\n  There is no such item.\n"))
+				stream.Write([]byte("\n  Item not found!\n"))
 			}
 		case "fight", "attack", "kick", "f":
 			valid, i := validateInt(cmdTokens[1])
@@ -474,6 +525,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					connection.session.character.targetID = p2Idx
 					connection.session.character.targetType = &TargetPlayer
 				} else {
+					entityFound := false
 					for _, id := range world.nodeList[connection.session.character.locationID].entityIDs {
 						keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[world.entities[id].templateID].name), func(r rune) bool {
 							return r == ' ' || r == ','
@@ -491,8 +543,12 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							connection.session.character.inCombat = true
 							connection.session.character.targetID = &id
 							connection.session.character.targetType = &TargetEntity
+							entityFound = true
 							break
 						}
+					}
+					if !entityFound && p2Chr == nil {
+						stream.Write([]byte("\n  Entity not found!\n"))
 					}
 				}
 				world.mu.Unlock()
@@ -504,6 +560,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					connection.session.character.inCombat = true
 					connection.session.character.targetID = &world.nodeList[connection.session.character.locationID].entityIDs[i]
 					connection.session.character.targetType = &TargetEntity
+				} else {
+					stream.Write([]byte("\n  Entity not found!\n"))
 				}
 			}
 		case "train":
@@ -533,11 +591,14 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					stream.Write([]byte("\n  You train once and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " by ten!"))
 				}
 				connection.session.character.trains -= 1
-				connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+				if connection.isClientWeb {
+					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+				}
 				stream.Write([]byte("\n  You now have one less " + color(connection, "cyan", "tp") + "train" + color(connection, "reset", "reset") + ".\n"))
 			}
 
 		case "list", "browse":
+			entityFound := false
 			for en, e := range world.entities {
 				keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[e.templateID].name), func(r rune) bool {
 					return r == ' ' || r == ','
@@ -564,8 +625,12 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 					stream.Write([]byte(color(connection, "green", "tp") + "\n +" + " buy " + color(connection, "reset", "reset") + "<id> " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset")))
 					stream.Write([]byte(color(connection, "red", "tp") + "\n -" + " sell " + color(connection, "reset", "reset") + "<id> " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + "\n"))
+					entityFound = true
 					break
 				}
+			}
+			if !entityFound {
+				stream.Write([]byte("\n  Entity not found!\n"))
 			}
 
 		case "toggle", "switch":
@@ -618,6 +683,32 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				}
 			}
 
+		// all the case 1s or 3s
+		case "exit", "quit":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "look", "l":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "north", "n":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "south", "s":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "west", "w":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "east", "e":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "inventory", "inv", "i":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "equipped", "worn", "armor":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "effects", "effs":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "profile", "pf":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "buy":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
+		case "sell":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <index_item> <entity>\n"))
+
 		default:
 			stream.Write([]byte("\n  Command not found!\n"))
 		}
@@ -627,6 +718,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 		case "buy":
 			valid, i := validateInt(cmdTokens[1])
 			if valid {
+				merchantFound := false
 				for en, e := range world.entities {
 					keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[e.templateID].name), func(r rune) bool {
 						return r == ' ' || r == ','
@@ -639,6 +731,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
+						merchantFound = true
 						itemInList := false
 						for _, merchantItem := range world.merchants[en].list {
 							if merchantItem == item {
@@ -647,6 +740,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							}
 						}
 						if !itemInList {
+							stream.Write([]byte("\n  Item not found!\n"))
 							break
 						}
 						bp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate)
@@ -662,10 +756,15 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						break
 					}
 				}
+				if !merchantFound {
+					stream.Write([]byte("\n  Entity not found!\n"))
+				}
 			}
 		case "sell":
 			valid, i := validateInt(cmdTokens[1])
 			if valid {
+				merchantFound := false
+				itemSold := false
 				for en, e := range world.entities {
 					keywords := strings.FieldsFunc(strings.ToLower(world.EntityTemplates[e.templateID].name), func(r rune) bool {
 						return r == ' ' || r == ','
@@ -678,6 +777,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
+						merchantFound = true
 						itemInList := false
 						for _, merchantItem := range world.merchants[en].list {
 							if merchantItem == item {
@@ -686,6 +786,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							}
 						}
 						if !itemInList {
+							stream.Write([]byte("\n  Item not found!\n"))
 							break
 						}
 						sp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].sellRate)
@@ -696,17 +797,186 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 								stream.Write([]byte("\n  You sell 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + spS + color(connection, "reset", "reset") + " coins to " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 								connection.session.character.coins += int(sp)
 								connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+								itemSold = true
 								break
 							}
+						}
+						if !itemSold {
+							stream.Write([]byte("\n  Item not found!\n"))
 						}
 						break
 					}
 				}
+				if !merchantFound {
+					stream.Write([]byte("\n  Entity not found!\n"))
+				}
 			}
+
+		// all the case 1s or 2s
+		case "exit", "quit":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "look", "l":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "north", "n":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "south", "s":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "west", "w":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "east", "e":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "inventory", "inv", "i":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "equipped", "worn", "armor":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "effects", "effs":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "profile", "pf":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "help", "h":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <query>\n"))
+		case "pickup", "take", "pick", "collect":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "drop", "put", "throw":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "examine":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "equip", "wear", "eq":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "unequip", "remove", "uneq":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <slot>\n"))
+		case "use", "u":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "fight", "attack", "kick", "f":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "train":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
+		case "list", "browse":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "toggle", "switch":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <option>\n"))
+		case "move", "go", "m":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <n|s|w|e>\n"))
 		}
 
 	default:
-		stream.Write([]byte("Too many arguments!"))
+		switch cmdTokens[0] {
+		case "exit", "quit":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "look", "l":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "north", "n":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "south", "s":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "west", "w":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "east", "e":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "inventory", "inv", "i":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "equipped", "worn", "armor":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "effects", "effs":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "profile", "pf":
+			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
+		case "help", "h":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <query>\n"))
+		case "pickup", "take", "pick", "collect":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "drop", "put", "throw":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "examine":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "equip", "wear", "eq":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "unequip", "remove", "uneq":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <slot>\n"))
+		case "use", "u":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
+		case "fight", "attack", "kick", "f":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "train":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
+		case "list", "browse":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "toggle", "switch":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <option>\n"))
+		case "move", "go", "m":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <n|s|w|e>\n"))
+		case "buy":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
+		case "sell":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <index_item> <entity>\n"))
+		}
 	}
 	return 1
+}
+
+func CommandsCombat(cmdTokens []string, db *sql.DB, world *World, connection *ConnectionData) {
+	stream := connection.store
+	switch len(cmdTokens) {
+	case 2:
+		switch cmdTokens[0] {
+		case "use", "u":
+			var itemT *ItemTemplate
+			var itemM *Item
+			valid, i := validateInt(cmdTokens[1])
+			if !valid {
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
+						keywords := strings.FieldsFunc(strings.ToLower(world.ItemTemplates[item.templateID].name), func(r rune) bool {
+							return r == ' ' || r == ','
+						})
+						matchBool := false
+						for _, k := range keywords {
+							if k == cmdTokens[1] {
+								matchBool = true
+							}
+						}
+						e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+						if matchBool && !slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
+							itemT = world.ItemTemplates[item.templateID]
+							itemM = item
+							break
+						}
+					}
+				}
+			} else {
+				var playerItems []int
+				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+				for _, item := range world.items {
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped && !slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
+						playerItems = append(playerItems, item.id)
+					}
+				}
+				if len(playerItems) > i && len(playerItems) != 0 {
+					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
+					itemM = world.items[playerItems[i]]
+				}
+			}
+			if itemT != nil {
+				for _, effect := range itemT.effects {
+					switch effect.effect {
+					case "hp":
+						if connection.session.character.hp != connection.session.character.maxHp {
+							stream.Write([]byte("\n  You use a " + color(connection, "cyan", "tp") + itemT.name + color(connection, "reset", "reset") + " to heal " + color(connection, "red", "tp") + strconv.Itoa(effect.value) + color(connection, "reset", "reset") + " hp! (" + strconv.Itoa(connection.session.character.hp) + "/" + strconv.Itoa(connection.session.character.maxHp) + ")\n"))
+							if connection.isClientWeb {
+								connection.store.Write([]byte("\x01SELF " + "hp:" + strconv.Itoa(connection.session.character.hp) + " coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+							}
+							connection.session.character.hp += effect.value
+							_, err := db.Exec("DELETE FROM items WHERE id = ?", itemM.id)
+							delete(world.items, itemM.id)
+							fmt.Println(err)
+						} else {
+							stream.Write([]byte("\n  Your health is already full!\n"))
+						}
+					}
+				}
+			} else {
+				stream.Write([]byte("\n  Item not found!\n"))
+			}
+		}
+	}
 }

@@ -414,6 +414,8 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 				if x == 0 {
 					return
 				}
+			} else {
+				CommandsCombat(cmdTokens, db, world, connection)
 			}
 			stream.Write([]byte("\n> "))
 		}

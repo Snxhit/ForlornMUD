@@ -1,5 +1,5 @@
 INSERT OR IGNORE INTO spawners (locationID,templateType,templateID,duration,maxSpawns) VALUES
-(0,'entity',0,12,2),
+(0,'entity',0,12,3),
 (3,'entity',2,15,1),
 (5,'entity',6,10,2),
 (8,'entity',8,20,1),
@@ -12,11 +12,11 @@ INSERT OR IGNORE INTO spawners (locationID,templateType,templateID,duration,maxS
 (24,'entity',10,20,1),
 (1,'item',0,8,3),
 (2,'item',2,10,2),
-(4,'item',6,30,1),
-(7,'item',13,25,1),
+(4,'item',6,30,2),
+(7,'item',13,25,2),
 (10,'item',1,12,2),
-(12,'item',8,40,1),
+(12,'item',8,40,4),
 (15,'item',4,50,1),
-(18,'item',5,60,1),
+(18,'item',5,60,2),
 (20,'item',3,15,1),
 (23,'item',14,35,1);

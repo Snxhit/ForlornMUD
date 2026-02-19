@@ -63,7 +63,7 @@ func ticks(world *World, db *sql.DB) {
 						}
 					}
 					if currentAlive >= s.maxSpawns {
-						s.nextSpawnTick += 1
+						s.nextSpawnTick = int(world.tick) + s.duration
 						continue
 					}
 					if world.tick >= int64(s.nextSpawnTick) {
@@ -78,6 +78,7 @@ func ticks(world *World, db *sql.DB) {
 						}
 					}
 					if currentSpawned >= s.maxSpawns {
+						s.nextSpawnTick = int(world.tick) + s.duration
 						continue
 					}
 					if world.tick >= int64(s.nextSpawnTick) {

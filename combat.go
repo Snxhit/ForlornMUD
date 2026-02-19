@@ -75,8 +75,11 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		conn.store.Write([]byte("\x1b[2K\r  The " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + " damages you for " + color(conn, "red", "tp") + strconv.Itoa(eFinalDam) + color(conn, "reset", "reset") + " (" + strconv.Itoa(conn.session.character.hp) + ")" + "\n\n> "))
 	}
 	if conn.session.character.hp <= 0 {
-		conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		if conn.isClientWeb {
+			conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
 		conn.store.Write([]byte(color(conn, "red", "tp") + "\x1b[2K\r\n  You died!" + color(conn, "reset", "reset") + ""))
+		conn.store.Write([]byte("\n  Enemy health has been " + color(conn, "red", "tp") + "regenerated" + color(conn, "reset", "reset") + "!"))
 		conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You are teleported to spawn!" + color(conn, "reset", "reset") + "\n"))
 		pExp := conn.session.character.exp
 		pLvl := conn.session.character.level
@@ -86,11 +89,14 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 			conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!"))
 			conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You " + color(conn, "red", "tp") + "lost" + color(conn, "reset", "reset") + " 1 level!" + "\n\n> "))
 		} else {
-			conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!" + "\n\n> "))
+			conn.store.Write([]byte("\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!" + "\n\n> "))
 		}
 		conn.session.character.exp -= int(expL)
-		conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+		if conn.isClientWeb {
+			conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+		}
 		conn.session.character.hp = conn.session.character.maxHp
+		world.entities[*conn.session.character.targetID].hp = world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].maxHp
 		conn.session.character.locationID = 0
 		world.entities[*conn.session.character.targetID].inCombat = false
 		world.entities[*conn.session.character.targetID].targetID = nil
@@ -102,12 +108,16 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		return 1
 	}
 	if world.entities[*conn.session.character.targetID].hp <= 0 {
-		conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		if conn.isClientWeb {
+			conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
 		conn.store.Write([]byte("\x1b[2K\r\n  You " + color(conn, "red", "tp") + "killed " + color(conn, "reset", "reset") + "a " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "!"))
 		c := rand.Intn(cMax-cMin) + cMin
 		conn.session.character.coins += c
 		conn.store.Write([]byte("\n  You " + color(conn, "yellow", "tp") + "loot" + color(conn, "reset", "reset") + " the " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "'s body and find " + color(conn, "yellow", "tp") + strconv.Itoa(c) + color(conn, "reset", "reset") + " coins!"))
-		conn.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(conn.session.character.coins) + "\n"))
+		if conn.isClientWeb {
+			conn.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(conn.session.character.coins) + "\n"))
+		}
 		for _, d := range world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].dropTable {
 			if rand.Intn(100) <= d.chance {
 				var qty int
@@ -139,7 +149,9 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n\n> "))
 		}
 		conn.session.character.exp += int(exp)
-		conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+		if conn.isClientWeb {
+			conn.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(conn.session.character.exp) + " lvl:" + strconv.Itoa(conn.session.character.level) + " trains:" + strconv.Itoa(conn.session.character.trains) + "\n"))
+		}
 		if world.merchants[*conn.session.character.targetID] != nil {
 			db.Exec("DELETE FROM merchants WHERE id = ?", *conn.session.character.targetID)
 			db.Exec("DELETE FROM merchant_list WHERE id = ?", *conn.session.character.targetID)

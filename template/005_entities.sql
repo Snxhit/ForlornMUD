@@ -1,5 +1,6 @@
 INSERT OR IGNORE INTO entity_templates VALUES
-(0,'Flavorpheus','A mysterious being who guards the gates of the Isle of Judgement.',15,12,14,13,16,10,0,200,30,30,500,1800,2100),
+-- (id, name, desc, str, dex, agi, stam, int, level, aggro, maxHp, baseDam, baseDef, baseExp, cMin, cMax)
+(0,'Flavorpheus','A mysterious being who guards the gates of the Isle of Judgement.',8,7,4,13,16,10,0,200,4,4,200,1300,1900),
 (1,'Orpheus','A digital poet who sings in code and flavor.',10,10,12,15,10,8,0,150,20,20,300,1200,1500),
 (2,'Slackbot','A helpful automaton that pings you with reminders and shit.',8,8,8,8,8,5,0,100,10,10,100,500,700),
 (3,'Flavorpheus Prime','The Flavorpheus but better. Radiates culinary strength',25,20,20,20,25,20,0,500,60,60,2000,5000,7000),
