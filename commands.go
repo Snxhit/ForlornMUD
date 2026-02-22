@@ -609,7 +609,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						matchBool = true
 					}
 				}
-				if matchBool && world.merchants[en] != nil {
+				if matchBool && world.merchants[en] != nil && world.entities[en].locationID == connection.session.character.locationID {
 					headingUncolored := "\n   [ ID ] + [QTY] + [ SELL ] + [  BUY  ] + [ NAME ]  \n"
 					headingColored := "\n   [\x1b[30;47m ID \x1b[39;49m] + [\x1b[30;47mQTY\x1b[39;49m] + [\x1b[30;47m SELL \x1b[39;49m] + [\x1b[30;47m  BUY  \x1b[39;49m] + [\x1b[30;47m NAME \x1b[39;49m]  \n"
 					if !connection.isColorEnabled {
