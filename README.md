@@ -22,7 +22,7 @@
   - [For Users](#for-users) <- Users click here!
   - [Self-Hosting](#self-hosting)
 - [Related Projects](#related-projects)
-- [Screenshots](#screenshots)
+- [Screenshots](#screenshots) <- For instructions video
 - [What I Learned](#what-i-learned)
 - [About Me](#about-me)
 
