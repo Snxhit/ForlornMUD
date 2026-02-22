@@ -20,7 +20,7 @@ INSERT OR IGNORE INTO rooms (id, name, description, n, s, w, e) VALUES
 (18, 'Alley Exit', 'A narrow passage leads to the “Spice Gardens.”', 32, 10, -1, 33),
 (19, 'Flavor Alley Dead End', 'A mural of Guy Fieri grins at you. Get it? Flavortown...', 34, -1, 10, -1),
 (20, 'Canal Bridge', 'A stone bridge arches over the canal. Ships pass beneath.', 35, 11, -1, 21),
-(21, 'Shipwright Lounge', 'Comfy chairs and a popcorn machine. The volunteers rest here.', 36, 12, 20, 37),
+(21, 'Shipwright Lounge', 'Uncomfy chairs and a popcorn machine. The volunteers rest here.', 36, 12, 20, 37),
 (22, 'Living Quarters: East', 'More apartments, decorated with festival banners and AI generated advertisements.', 38, -1, 12, 39),
 (23, 'Chef’s Storage', 'Shelves of rare spices and javascript frameworks.', 40, 13, -1, 41),
 (24, 'Common Kitchen', 'Shipwrights work together to cook one big ship!', 42, -1, 13, 43),
