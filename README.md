@@ -192,8 +192,10 @@ This enables playing from the browser without requiring direct TCP support.
 ---
 
 ## Screenshots
-- **Preview**<br>
-  https://github.com/user-attachments/assets/4bd01f93-e627-4950-9fc2-7a2c8a50bc4a<br>
+- **Preview**
+
+https://github.com/user-attachments/assets/4bd01f93-e627-4950-9fc2-7a2c8a50bc4a
+
   Sorry for the bad quality.
 
 - **Combat system**<br>
