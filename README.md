@@ -192,7 +192,7 @@ This enables playing from the browser without requiring direct TCP support.
 ---
 
 ## Screenshots
-- Preview<br>
+- **Preview**<br>
   [Click here to watch the preview!](https://res.cloudinary.com/dp7g5aflo/video/upload/v1771735143/ForlornPreview1_ithyhp.mp4)<br>
   Sorry for the bad quality.
 
