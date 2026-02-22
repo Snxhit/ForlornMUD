@@ -193,7 +193,7 @@ This enables playing from the browser without requiring direct TCP support.
 
 ## Screenshots
 - Preview<br>
-  <video src="https://res.cloudinary.com/dp7g5aflo/video/upload/v1771735143/ForlornPreview1_ithyhp.mp4" width="100%" controls>
+  <video src="/Public/InstructionsVideo.mp4" width="100%" controls>
 
 - **Combat system**<br>
 Item drops, coins, exp, levels, and more!
