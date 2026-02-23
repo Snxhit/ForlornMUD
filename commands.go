@@ -568,8 +568,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			opts := []string{"str", "dex", "agi", "stam", "int", "hp"}
 			if connection.session.character.trains < 1 {
 				stream.Write([]byte("\n  You do not have enough trains!\n"))
-			}
-			if slices.Contains(opts, cmdTokens[1]) {
+			} else if slices.Contains(opts, cmdTokens[1]) {
 				switch cmdTokens[1] {
 				case "str":
 					connection.session.character.baseStats.Str += 1
