@@ -137,7 +137,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		pLvl := conn.session.character.level
 		pExp := conn.session.character.exp
 		if math.Floor((float64(pExp)+exp)/100.0) > float64(pLvl) {
-			lvls := int(math.Floor(exp / 100.0))
+			lvls := int(math.Floor((float64(pExp)+exp)/100.0)) - pLvl
 			trains := 5 * int(lvls)
 			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n"))
 			conn.store.Write([]byte("\n  Congrats!"))
