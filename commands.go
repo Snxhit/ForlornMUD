@@ -11,6 +11,32 @@ import (
 
 func Commands(cmdTokens []string, db *sql.DB, world *World, connection *ConnectionData) int {
 	stream := connection.store
+
+	if cmdTokens[0] == "sayto" || cmdTokens[0] == "tell" {
+		if len(cmdTokens) < 3 {
+			stream.Write([]byte("\n  Usage: sayto <player> <message>\n"))
+			return 1
+		}
+		playerFound := false
+		for _, c := range world.characters {
+			if c.conn.session.username == cmdTokens[1] && c.conn.session.username != connection.session.username {
+				msg := "\x1b[2K\r  " + color(c.conn, "cyan", "tp") + "* " + color(c.conn, "yellow", "tp") + connection.session.username + " " + color(c.conn, "reset", "reset") + "says, \""
+				for _, t := range cmdTokens[2:len(cmdTokens)] {
+					msg += t
+					msg += " "
+				}
+				msg += "\b\".\n\n> "
+				c.conn.store.Write([]byte(msg))
+				stream.Write([]byte("\n  Message sent!\n"))
+				playerFound = true
+				break
+			}
+		}
+		if !playerFound {
+			stream.Write([]byte("\n  Player not found!\n"))
+		}
+		return 1
+	}
 	switch len(cmdTokens) {
 	case 1:
 		switch cmdTokens[0] {
@@ -133,7 +159,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			hpBars := int(math.Floor(float64(connection.session.character.hp)/float64(connection.session.character.maxHp)*100)) / 4
 			s := connection.session.character.baseStats
 			str, dex, agi, stam, int := strconv.Itoa(s.Str), strconv.Itoa(s.Dex), strconv.Itoa(s.Agi), strconv.Itoa(s.Stam), strconv.Itoa(s.Int)
-			printProfileCard(connection, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
+			printProfileCard(connection, connection.session.username, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
 
 		// all the case 2 or 3s
 		case "help", "h":
@@ -152,8 +178,10 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item>\n"))
 		case "fight", "attack", "kick", "f":
 			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <entity>\n"))
+		case "character", "char":
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <character_name>\n"))
 		case "train":
-			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
+			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <number> <stat_name>\n"))
 		case "list", "browse":
 			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <entity>\n"))
 		case "toggle", "switch":
@@ -517,7 +545,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					*p2Idx = p2Index
 
 					stream.Write([]byte("\n  Engaging " + color(connection, "cyan", "tp") + p2Chr.conn.session.username + color(connection, "reset", "reset") + "\n"))
-					p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + connection.session.username + color(p2Chr.conn, "reset", "reset") + " wants to fight!\n\n> "))
+					p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " wants to fight!\n\n> "))
 					p2Chr.inCombat = true
 					p2Chr.targetID = p1Idx
 					p2Chr.targetType = &TargetPlayer
@@ -565,35 +593,18 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				}
 			}
 		case "train":
-			opts := []string{"str", "dex", "agi", "stam", "int", "hp"}
-			if connection.session.character.trains < 1 {
-				stream.Write([]byte("\n  You do not have enough trains!\n"))
-			} else if slices.Contains(opts, cmdTokens[1]) {
-				switch cmdTokens[1] {
-				case "str":
-					connection.session.character.baseStats.Str += 1
-					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
-				case "dex":
-					connection.session.character.baseStats.Dex += 1
-					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
-				case "agi":
-					connection.session.character.baseStats.Agi += 1
-					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
-				case "stam":
-					connection.session.character.baseStats.Stam += 1
-					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
-				case "int":
-					connection.session.character.baseStats.Int += 1
-					stream.Write([]byte("\n  You train once and increase your " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " stat by one!"))
-				case "hp":
-					connection.session.character.maxHp += 10
-					stream.Write([]byte("\n  You train once and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[1] + color(connection, "reset", "reset") + " by ten!"))
-				}
-				connection.session.character.trains -= 1
+			if cmdTokens[1] == "reset" {
+				c := connection.session.character
+				trainsUsed := (c.baseStats.Str - 10) + (c.baseStats.Dex - 10) + (c.baseStats.Agi - 10) + (c.baseStats.Stam - 10) + (c.baseStats.Int - 10) + (c.maxHp-200)/10
+				c.baseStats = Stats{10, 10, 10, 10, 10}
+				c.maxHp = 200
+				c.trains += trainsUsed
+				stream.Write([]byte("\n  Stats reset! You have been refunded " + color(connection, "cyan", "tp") + strconv.Itoa(trainsUsed) + color(connection, "reset", "reset") + " trains. (" + strconv.Itoa(c.trains) + ")\n"))
 				if connection.isClientWeb {
-					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(c.exp) + " lvl:" + strconv.Itoa(c.level) + " trains:" + strconv.Itoa(c.trains) + "\n"))
 				}
-				stream.Write([]byte("\n  You now have one less " + color(connection, "cyan", "tp") + "train" + color(connection, "reset", "reset") + ".\n"))
+			} else {
+				stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <number> <stat_name>\n"))
 			}
 
 		case "list", "browse":
@@ -631,6 +642,67 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			if !entityFound {
 				stream.Write([]byte("\n  Entity not found!\n"))
 			}
+
+		case "character", "char":
+			world.mu.Lock()
+			var p2Chr *Character = nil
+			for i := range world.characters {
+				char := world.characters[i]
+				if char.conn != nil && char.conn.session.username == cmdTokens[1] {
+					p2Chr = char
+				}
+			}
+			if p2Chr != nil {
+				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
+				eList := [6]string{}
+				for i, slot := range e {
+					if !connection.isColorEnabled {
+						if p2Chr.conn.session.character.equipment[slot] != 0 {
+							eList[i] = "  - " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + world.ItemTemplates[world.items[p2Chr.conn.session.character.equipment[slot]].templateID].name
+						} else {
+							eList[i] = "  + " + e[i] + strings.Repeat(" ", 8-len(e[i])) + " - " + "<empty>"
+						}
+					} else {
+						if p2Chr.conn.session.character.equipment[slot] != 0 {
+							eList[i] = "  - " + color(connection, "magenta", "tp") + e[i] + color(connection, "reset", "reset") + strings.Repeat(" ", 8-len(e[i])) + " - "
+							eP := color(connection, "cyan", "tp") + world.ItemTemplates[world.items[p2Chr.conn.session.character.equipment[slot]].templateID].name + color(connection, "reset", "reset")
+							// framework laptop
+							if visibleLen(eP) > 15 {
+								eList[i] += eP[0:17]
+								eList[i] += "..."
+								eList[i] += color(connection, "reset", "reset")
+							} else {
+								eList[i] += eP
+							}
+						} else {
+							eList[i] = "  + " + color(connection, "magenta", "tp") + e[i] + color(connection, "reset", "reset") + strings.Repeat(" ", 8-len(e[i])) + " - " + "<empty>"
+						}
+					}
+				}
+
+				var nameMedian int
+				if len(p2Chr.conn.session.username)%2 == 1 {
+					nameMedian = int(math.Floor(float64(len(p2Chr.conn.session.username))/2.0)) + 1
+				} else {
+					nameMedian = len(p2Chr.conn.session.username)/2 + 1
+				}
+
+				cardLength := 60
+				c := strconv.Itoa(p2Chr.conn.session.character.coins)
+				t := strconv.Itoa(p2Chr.conn.session.character.trains)
+				lvl := strconv.Itoa(p2Chr.conn.session.character.level)
+				exp := strconv.Itoa(p2Chr.conn.session.character.exp)
+				expBars := (p2Chr.conn.session.character.exp % 100) / 5
+				hp := strconv.Itoa(p2Chr.conn.session.character.hp)
+				maxHp := strconv.Itoa(p2Chr.conn.session.character.maxHp)
+				hpBars := int(math.Floor(float64(p2Chr.conn.session.character.hp)/float64(p2Chr.conn.session.character.maxHp)*100)) / 4
+				s := p2Chr.conn.session.character.baseStats
+				str, dex, agi, stam, int := strconv.Itoa(s.Str), strconv.Itoa(s.Dex), strconv.Itoa(s.Agi), strconv.Itoa(s.Stam), strconv.Itoa(s.Int)
+				printProfileCard(p2Chr.conn, p2Chr.conn.session.username, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
+			} else {
+				stream.Write([]byte("\n  Player not found!\n"))
+			}
+			world.mu.Unlock()
 
 		case "toggle", "switch":
 			switch cmdTokens[1] {
@@ -714,6 +786,43 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 
 	case 3:
 		switch cmdTokens[0] {
+		case "train":
+			opts := []string{"str", "dex", "agi", "stam", "int", "hp"}
+			validN, n := validateInt(cmdTokens[1])
+			if !validN || n < 1 {
+				stream.Write([]byte("\n  Invalid number!\n"))
+			} else if !slices.Contains(opts, cmdTokens[2]) {
+				stream.Write([]byte("\n  Invalid stat! Use: str, dex, agi, stam, int, hp\n"))
+			} else if connection.session.character.trains < n {
+				stream.Write([]byte("\n  You do not have enough trains!\n"))
+			} else {
+				for range n {
+					switch cmdTokens[2] {
+					case "str":
+						connection.session.character.baseStats.Str += 1
+					case "dex":
+						connection.session.character.baseStats.Dex += 1
+					case "agi":
+						connection.session.character.baseStats.Agi += 1
+					case "stam":
+						connection.session.character.baseStats.Stam += 1
+					case "int":
+						connection.session.character.baseStats.Int += 1
+					case "hp":
+						connection.session.character.maxHp += 10
+					}
+				}
+				connection.session.character.trains -= n
+				if connection.isClientWeb {
+					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+				}
+				if cmdTokens[2] == "hp" {
+					stream.Write([]byte("\n  You train " + strconv.Itoa(n) + " time(s) and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[2] + color(connection, "reset", "reset") + " by " + strconv.Itoa(n*10) + "! (" + strconv.Itoa(connection.session.character.maxHp) + ")\n"))
+				} else {
+					stream.Write([]byte("\n  You train " + strconv.Itoa(n) + " time(s) and increase your " + color(connection, "cyan", "tp") + cmdTokens[2] + color(connection, "reset", "reset") + " by " + strconv.Itoa(n) + "! (" + strconv.Itoa(n) + ")\n"))
+				}
+				stream.Write([]byte("  You now have " + color(connection, "cyan", "tp") + strconv.Itoa(connection.session.character.trains) + color(connection, "reset", "reset") + " trains remaining.\n"))
+			}
 		case "buy":
 			valid, i := validateInt(cmdTokens[1])
 			if valid {
@@ -848,8 +957,6 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
 		case "fight", "attack", "kick", "f":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
-		case "train":
-			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
 		case "list", "browse":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
 		case "toggle", "switch":
@@ -896,14 +1003,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item>\n"))
 		case "fight", "attack", "kick", "f":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
-		case "train":
-			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <stat_name>\n"))
+		case "character", "char":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <character_name>\n"))
 		case "list", "browse":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <entity>\n"))
 		case "toggle", "switch":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <option>\n"))
 		case "move", "go", "m":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <n|s|w|e>\n"))
+		case "train":
+			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <amount> <stat>\n"))
 		case "buy":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
 		case "sell":

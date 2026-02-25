@@ -304,10 +304,32 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 		}
 		var strCmd string
 		if connection.session.authorized {
-			strCmd = strings.ToLower(string(bufCmd[0 : len(bufCmd)-1]))
+			inp := strings.Split(string(bufCmd[0:len(bufCmd)-1]), " ")
+			if inp[0] == "fight" || inp[0] == "f" || inp[0] == "kick" || inp[0] == "sayto" || inp[0] == "tell" {
+				rawCmd := string(bufCmd[0 : len(bufCmd)-1])
+				isPlayer := false
+				if len(inp) > 1 {
+					for _, c := range world.characters {
+						if c.conn != nil && c.conn.session != nil && c.conn.session.username == inp[1] {
+							isPlayer = true
+							break
+						}
+					}
+				}
+				if isPlayer {
+					strCmd = rawCmd
+				} else {
+					strCmd = strings.ToLower(rawCmd)
+				}
+			} else if inp[0] == "character" || inp[0] == "char" {
+				strCmd = string(bufCmd[0 : len(bufCmd)-1])
+			} else {
+				strCmd = strings.ToLower(string(bufCmd[0 : len(bufCmd)-1]))
+			}
 		} else {
 			strCmd = string(bufCmd[0 : len(bufCmd)-1])
 		}
+
 		cmdTokens := strings.Split(strCmd, " ")
 		if len(cmdTokens) == 1 && cmdTokens[0] == "exit" || cmdTokens[0] == "quit" {
 			HandleClientDisconnect(connection, world, db)
@@ -339,9 +361,19 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 						fmt.Println(err)
 					}
 				} else {
-					connection.session.loginctx.newPlayer = false
-					connection.session.username = cmdTokens[0]
-					stream.Write([]byte("\n  User " + cmdTokens[0] + " found, what is your password?\n"))
+					online := false
+					for _, co := range world.characters {
+						if co.conn != nil && co.conn.session != nil && co.conn.session.username == cmdTokens[0] {
+							online = true
+						}
+					}
+					if online {
+						stream.Write([]byte("\n  User " + cmdTokens[0] + " is already online!\n"))
+					} else {
+						connection.session.loginctx.newPlayer = false
+						connection.session.username = cmdTokens[0]
+						stream.Write([]byte("\n  User " + cmdTokens[0] + " found, what is your password?\n"))
+					}
 				}
 			} else if len(cmdTokens[0]) <= 3 {
 				stream.Write([]byte("\n  Too short!\n"))
@@ -359,8 +391,8 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 						world.mu.Lock()
 						l := connection.session.loginctx
 						world.characters = append(world.characters, &Character{len(world.characters), l.hp, l.maxHp, l.baseStats, l.exp, l.level, l.trains, l.coins, map[string]int{}, []StatModifier{}, l.locationID, nil, nil, false, connection})
-						world.mu.Unlock()
 						connection.session.character = world.characters[len(world.characters)-1]
+						world.mu.Unlock()
 						for _, i := range world.items {
 							if i.locationType == TargetPlayer && i.locationID == connection.session.id && i.equipped {
 								connection.session.character.equipment[world.ItemTemplates[i.templateID].itype] = i.id

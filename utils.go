@@ -178,11 +178,11 @@ func calcExpMultiplier(diff int) float64 {
 	}
 }
 
-func printProfileCard(connection *ConnectionData, nameMedian int, c string, t string, lvl string, exp string, expBars int, str string, dex string, agi string, stam string, int string, cardLength int, eList [6]string, hp string, maxHp string, hpBars int) {
+func printProfileCard(connection *ConnectionData, name string, nameMedian int, c string, t string, lvl string, exp string, expBars int, str string, dex string, agi string, stam string, int string, cardLength int, eList [6]string, hp string, maxHp string, hpBars int) {
 	stream := connection.store
 
 	if !connection.isPrettyEnabled {
-		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + connection.session.username + color(connection, "reset", "reset")
+		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + color(connection, "reset", "reset")
 		stream.Write([]byte("\n  +" + strings.Repeat("-", cardLength) + "+\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+2) + " |\n"))
 		stream.Write([]byte("  +" + strings.Repeat("-", 27) + "+" + strings.Repeat("-", cardLength-28) + "+\n"))
@@ -221,7 +221,7 @@ func printProfileCard(connection *ConnectionData, nameMedian int, c string, t st
 		stream.Write([]byte("  +" + strings.Repeat("-", cardLength) + "+\n"))
 
 	} else {
-		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + connection.session.username + color(connection, "reset", "reset")
+		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + color(connection, "reset", "reset")
 		stream.Write([]byte("\n  ╭" + strings.Repeat("─", cardLength) + "╮\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+4) + " │\n"))
 		stream.Write([]byte("  ├" + strings.Repeat("─", 27) + "┬" + strings.Repeat("─", cardLength-28) + "┤\n"))

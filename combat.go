@@ -237,8 +237,12 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 	}
 
 	if p2Chr.hp <= 0 {
-		p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
-		p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		if p1Chr.conn.isClientWeb {
+			p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
+		if p2Chr.conn.isClientWeb {
+			p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
 		p2Chr.inCombat = false
 		p2Chr.targetID = nil
 		p2Chr.targetType = nil
@@ -263,8 +267,12 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		p2Chr.conn.store.Write([]byte("\n\n> "))
 		return 1
 	} else if p1Chr.hp <= 0 {
-		p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
-		p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		if p1Chr.conn.isClientWeb {
+			p1Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
+		if p2Chr.conn.isClientWeb {
+			p2Chr.conn.store.Write([]byte("\n\x01COMBAT type:player hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
+		}
 		p2Chr.inCombat = false
 		p2Chr.targetID = nil
 		p2Chr.targetType = nil

@@ -13,7 +13,11 @@ INSERT OR IGNORE INTO item_templates VALUES
 (11,'Slack Ring','A badge that lets you speak in mysterious channels.','ring',0,5,50),
 (12,'Flavor Shield','A shield made from hardened caramel.','offhand',0,20,1000),
 (13,'Cookie Bag','A bag that magically produces cookies. Maybe.','consumable',0,0,1000),
-(14,'Energy Drink','A can that fizzes with late night coding sessions.','consumable',0,0,500);
+(14,'Energy Drink','A can that fizzes with late night coding sessions.','consumable',0,0,500),
+(15,'Cooked Helmet','A helmet forged from caramel, warm to the touch.','head',0,40,30000),
+(16,'Cooked Chestplate','A chestplate roasted to perfection.','body',0,60,50000),
+(17,'Cooked Tights','Leggings spun from ramen. Im hungry.','legs',0,35,35000),
+(18,'Cooked Ring','A ring encrusted with a well cooked seal of approval!','ring',0,0,20000);
 
 INSERT OR IGNORE INTO item_template_modifiers VALUES
 (8,'str',5),
@@ -21,12 +25,21 @@ INSERT OR IGNORE INTO item_template_modifiers VALUES
 (9,'int',2),
 (10,'str',7),
 (12,'dex',10),
-(11,'int',3);
+(11,'int',3),
+(15,'int',8),
+(15,'dex',5),
+(16,'str',12),
+(16,'stam',10),
+(17,'agi',10),
+(17,'dex',8),
+(18,'str',5),
+(18,'int',5),
+(18,'agi',5);
 
 INSERT OR IGNORE INTO item_template_effects VALUES
 (0,'hp',10),
 (1,'hp',15),
-(2,'str',2),
-(3,'agi',3),
-(13,'hp',5),
-(14,'agi',5);
+(2,'hp',20),
+(3,'hp',30),
+(13,'hp',50),
+(14,'hp',10);

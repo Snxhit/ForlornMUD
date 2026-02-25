@@ -11,10 +11,14 @@ INSERT OR IGNORE INTO entity_templates VALUES
 (8,'Shipwright','A shipwright, always ready with a hammer to fix whatevers broken!',14,12,10,10,12,8,0,160,18,18,250,900,1200),
 (9,'Flavorpheus of the East','A wandering flavor sage with a taste for adventure.',16,14,15,13,17,11,0,210,28,28,600,1700,2100),
 (10,'Orpheus of the West','A code poet who crafts digital experiences.',13,13,15,17,13,9,0,190,22,22,350,1300,1600),
+(16,'Blazing Server','A smoldering machine that runs on pure heat. No fans, no cooling.',22,18,22,18,20,18,1,400,50,45,1500,3500,5000),
+(17,'The Burninator','An ancient entity that burns everything it touches, including pull requests.',28,20,16,25,15,22,1,600,70,55,2500,6000,9000),
+(18,'RAM Haver','A figure made of volatile memory. Rumor has it that he stole the RAM.',20,25,25,20,22,20,0,450,55,50,1800,4000,6000),
 (11,'Cookie Merchant','B2B SaaS lover.',99,99,99,99,99,99,0,99999,999,999,99999,99999,99999),
 (12,'PCB Credit Scalper','A shady figure selling PCB credits at totally reasonable prices.',120,120,120,120,120,120,0,99999,999,999,99999,99999,99999),
 (13,'AI Credit Dealer','A mysterious merchant with glowing eyes, calls himself Sam Altman.',130,130,130,130,130,130,0,99999,999,999,99999,99999,99999),
-(14,'Domain Broker','A slick-talking, orange cloud shaped merchant offering domain names for a small fee.',110,110,110,110,110,110,0,99999,999,999,99999,99999,99999);
+(14,'Domain Broker','A slick-talking, orange cloud shaped merchant offering domain names for a small fee.',110,110,110,110,110,110,0,99999,999,999,99999,99999,99999),
+(15,'Flavor Tailor','A stylish chef who sews armor from well cooked ships.',99,99,99,99,99,99,0,99999,999,999,99999,99999,99999);
 
 INSERT OR IGNORE INTO entity_template_drops VALUES
 (0,0,80,1,3),
@@ -28,5 +32,8 @@ INSERT OR IGNORE INTO entity_template_drops VALUES
 (7,12,25,1,1),
 (8,8,10,1,1),
 (9,2,60,1,2),
-(10,7,15,1,1);
-
+(10,7,15,1,1),
+(16,15,5,1,1),
+(17,17,5,1,1),
+(17,18,5,1,1),
+(18,16,5,1,1);
