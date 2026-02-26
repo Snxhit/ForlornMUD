@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -16,8 +17,29 @@ func ticks(world *World, db *sql.DB) {
 		case <-worldTicker.C:
 			world.mu.Lock()
 			world.tick++
+			for _, chr := range world.characters {
+				if chr.conn == nil && chr.id != -1 {
+					world.mu.Unlock()
+					s := chr.baseStats
+					c := chr
+					_, err := db.Exec("UPDATE players SET (hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, c.id)
+					fmt.Println(err)
+					world.mu.Lock()
+					world.characters[chr.worldID] = &Character{chr.worldID, 100, 0, Stats{1, 1, 1, 1, 1}, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, -1, nil}
+				}
+			}
 			for _, conn := range world.connections {
 				if conn.session == nil || !conn.session.authorized || conn.session.character == nil {
+					continue
+				}
+				if conn.session.character.lastInteraction > 100 {
+					conn.store.Write([]byte("\n  You have been kicked for being AFK!\n"))
+					if conn.isClientWeb {
+						conn.store.Write([]byte("\n  Please reload to rejoin!\n\n"))
+					}
+					world.mu.Unlock()
+					HandleClientDisconnect(conn, world, db)
+					world.mu.Lock()
 					continue
 				}
 				if conn.session.character.hp < conn.session.character.maxHp && !conn.session.character.inCombat {
@@ -27,6 +49,9 @@ func ticks(world *World, db *sql.DB) {
 					conn.session.character.hp = conn.session.character.maxHp
 				} else if conn.session.character.hp < 0 {
 					conn.session.character.hp = 0
+				}
+				if !conn.session.character.inCombat {
+					conn.session.character.lastInteraction += 1
 				}
 				if conn.session.character.inCombat {
 					if conn.session.character.targetID == nil {

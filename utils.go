@@ -182,7 +182,7 @@ func printProfileCard(connection *ConnectionData, name string, nameMedian int, c
 	stream := connection.store
 
 	if !connection.isPrettyEnabled {
-		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + color(connection, "reset", "reset")
+		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + name + color(connection, "reset", "reset")
 		stream.Write([]byte("\n  +" + strings.Repeat("-", cardLength) + "+\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+2) + " |\n"))
 		stream.Write([]byte("  +" + strings.Repeat("-", 27) + "+" + strings.Repeat("-", cardLength-28) + "+\n"))
@@ -221,7 +221,7 @@ func printProfileCard(connection *ConnectionData, name string, nameMedian int, c
 		stream.Write([]byte("  +" + strings.Repeat("-", cardLength) + "+\n"))
 
 	} else {
-		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + color(connection, "reset", "reset")
+		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + name + color(connection, "reset", "reset")
 		stream.Write([]byte("\n  ╭" + strings.Repeat("─", cardLength) + "╮\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+4) + " │\n"))
 		stream.Write([]byte("  ├" + strings.Repeat("─", 27) + "┬" + strings.Repeat("─", cardLength-28) + "┤\n"))

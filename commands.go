@@ -10,6 +10,7 @@ import (
 )
 
 func Commands(cmdTokens []string, db *sql.DB, world *World, connection *ConnectionData) int {
+	connection.session.character.lastInteraction = 0
 	stream := connection.store
 
 	if cmdTokens[0] == "sayto" || cmdTokens[0] == "tell" {
@@ -19,6 +20,9 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 		}
 		playerFound := false
 		for _, c := range world.characters {
+			if c.conn == nil || c.conn.session == nil {
+				continue
+			}
 			if c.conn.session.username == cmdTokens[1] && c.conn.session.username != connection.session.username {
 				msg := "\x1b[2K\r  " + color(c.conn, "cyan", "tp") + "* " + color(c.conn, "yellow", "tp") + connection.session.username + " " + color(c.conn, "reset", "reset") + "says, \""
 				for _, t := range cmdTokens[2:len(cmdTokens)] {
@@ -698,7 +702,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				hpBars := int(math.Floor(float64(p2Chr.conn.session.character.hp)/float64(p2Chr.conn.session.character.maxHp)*100)) / 4
 				s := p2Chr.conn.session.character.baseStats
 				str, dex, agi, stam, int := strconv.Itoa(s.Str), strconv.Itoa(s.Dex), strconv.Itoa(s.Agi), strconv.Itoa(s.Stam), strconv.Itoa(s.Int)
-				printProfileCard(p2Chr.conn, p2Chr.conn.session.username, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
+				printProfileCard(connection, p2Chr.conn.session.username, nameMedian, c, t, lvl, exp, expBars, str, dex, agi, stam, int, cardLength, eList, hp, maxHp, hpBars)
 			} else {
 				stream.Write([]byte("\n  Player not found!\n"))
 			}

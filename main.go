@@ -206,7 +206,9 @@ type Character struct {
 	targetID   *int
 	inCombat   bool
 
-	conn *ConnectionData
+	lastInteraction int
+	id              int
+	conn            *ConnectionData
 }
 
 func (char Character) getEffectiveStat(stat string) int {
@@ -275,6 +277,10 @@ func main() {
 				defer func() {
 					if r := recover(); r != nil {
 						fmt.Println("Client crashed: ", r)
+						func() {
+							defer recover()
+							HandleClientDisconnect(&conn, &world, db)
+						}()
 						newConn.Close()
 					}
 				}()
@@ -294,6 +300,8 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 		_, err := stream.Read(buf)
 		if err != nil {
 			fmt.Println("Error reading input: ", err.Error())
+			HandleClientDisconnect(connection, world, db)
+			return
 		}
 
 		bufCmd := bytes.Trim(buf, string([]byte{0}))
@@ -390,7 +398,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 						TotalPlayers += 1
 						world.mu.Lock()
 						l := connection.session.loginctx
-						world.characters = append(world.characters, &Character{len(world.characters), l.hp, l.maxHp, l.baseStats, l.exp, l.level, l.trains, l.coins, map[string]int{}, []StatModifier{}, l.locationID, nil, nil, false, connection})
+						world.characters = append(world.characters, &Character{len(world.characters), l.hp, l.maxHp, l.baseStats, l.exp, l.level, l.trains, l.coins, map[string]int{}, []StatModifier{}, l.locationID, nil, nil, false, 0, connection.session.id, connection})
 						connection.session.character = world.characters[len(world.characters)-1]
 						world.mu.Unlock()
 						for _, i := range world.items {
@@ -411,7 +419,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 				} else {
 					stream.Write([]byte("\n  Welcome, " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " to the game!\n"))
 					world.mu.Lock()
-					world.characters = append(world.characters, &Character{len(world.characters), connection.session.loginctx.hp, 200, Stats{10, 10, 10, 10, 10}, 100, 1, 0, 0, map[string]int{}, []StatModifier{}, connection.session.loginctx.locationID, nil, nil, false, connection})
+					world.characters = append(world.characters, &Character{len(world.characters), connection.session.loginctx.hp, 200, Stats{10, 10, 10, 10, 10}, 100, 1, 0, 0, map[string]int{}, []StatModifier{}, connection.session.loginctx.locationID, nil, nil, false, 0, 0, connection})
 					connection.session.character = world.characters[len(world.characters)-1]
 					hashedPass, err := bcrypt.GenerateFromPassword([]byte(cmdTokens[0]), bcrypt.DefaultCost)
 					world.mu.Unlock()
@@ -425,6 +433,7 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 					}
 					connection.session.password = string(hashedPass)
 					connection.session.id = int(id)
+					connection.session.character.id = int(id)
 					connection.session.authorized = true
 					TotalPlayers += 1
 					stream.Write([]byte("  Welcome to the MUD!\n\n"))
@@ -457,6 +466,10 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB) {
 	world.mu.Lock()
 	defer world.mu.Unlock()
+
+	if connection.session == nil {
+		return
+	}
 
 	if connection.isClientWeb {
 		connection.store.Write([]byte("\n\x01COMBAT type:entity hp:0 maxHp:0 enemyName:None enemyHp:0 enemyMaxHp:0\n"))
@@ -507,7 +520,7 @@ func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB
 		c := connection.session.character
 		_, err := db.Exec("UPDATE players SET (hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, connection.session.id)
 		fmt.Println(err)
-		world.characters[connection.session.character.worldID] = &Character{connection.session.character.worldID, 100, 0, Stats{1, 1, 1, 1, 1}, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, nil}
+		world.characters[connection.session.character.worldID] = &Character{connection.session.character.worldID, 100, 0, Stats{1, 1, 1, 1, 1}, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, -1, nil}
 
 		for i, c := range world.connections {
 			if c == connection {
