@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"database/sql"
 	"fmt"
 	"math/rand"
@@ -164,6 +163,8 @@ type ConnectionData struct {
 	isClientWeb     bool
 	isPrettyEnabled bool
 	isColorEnabled  bool
+	currentInput    string
+	mu              sync.Mutex
 }
 
 type Session struct {
@@ -257,7 +258,7 @@ func main() {
 			}
 
 			sesh := Session{false, 0, "", "", &LoginContext{false, 0, "", "", 100, 0, 0, Stats{1, 1, 1, 1, 1}, 100, 1, 0, 0}, nil}
-			conn := ConnectionData{TotalConnections, newConn, &sesh, false, true, true}
+			conn := ConnectionData{TotalConnections, newConn, &sesh, false, true, true, "", sync.Mutex{}}
 
 			reader := bufio.NewReader(newConn)
 
@@ -296,25 +297,35 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 	stream := connection.store
 	stream.Write([]byte("\nWhat is your name?\n> "))
 	for {
-		buf := make([]byte, 2048)
-		_, err := stream.Read(buf)
+		ch := make([]byte, 1)
+		_, err := stream.Read(ch)
 		if err != nil {
 			fmt.Println("Error reading input: ", err.Error())
 			HandleClientDisconnect(connection, world, db)
 			return
 		}
-
-		bufCmd := bytes.Trim(buf, string([]byte{0}))
-		// if the user interrupts
+		if ch[0] == 0 {
+			continue
+		}
+		if ch[0] != '\n' {
+			connection.mu.Lock()
+			connection.currentInput += string(ch)
+			connection.mu.Unlock()
+			continue
+		}
+		bufCmd := []byte(strings.TrimRight(connection.currentInput, "\r"))
+		connection.mu.Lock()
+		connection.currentInput = ""
+		connection.mu.Unlock()
 		if len(bufCmd) == 0 {
-			HandleClientDisconnect(connection, world, db)
-			return
+			stream.Write([]byte("\n> "))
+			continue
 		}
 		var strCmd string
 		if connection.session.authorized {
-			inp := strings.Split(string(bufCmd[0:len(bufCmd)-1]), " ")
+			inp := strings.Split(string(bufCmd), " ")
 			if inp[0] == "fight" || inp[0] == "f" || inp[0] == "kick" || inp[0] == "sayto" || inp[0] == "tell" {
-				rawCmd := string(bufCmd[0 : len(bufCmd)-1])
+				rawCmd := string(bufCmd)
 				isPlayer := false
 				if len(inp) > 1 {
 					for _, c := range world.characters {
@@ -330,12 +341,12 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 					strCmd = strings.ToLower(rawCmd)
 				}
 			} else if inp[0] == "character" || inp[0] == "char" {
-				strCmd = string(bufCmd[0 : len(bufCmd)-1])
+				strCmd = string(bufCmd)
 			} else {
-				strCmd = strings.ToLower(string(bufCmd[0 : len(bufCmd)-1]))
+				strCmd = strings.ToLower(string(bufCmd))
 			}
 		} else {
-			strCmd = string(bufCmd[0 : len(bufCmd)-1])
+			strCmd = string(bufCmd)
 		}
 
 		cmdTokens := strings.Split(strCmd, " ")
@@ -496,7 +507,9 @@ func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB
 				p1Chr.inCombat = false
 				p1Chr.targetID = nil
 				p1Chr.targetType = nil
-				p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + connection.session.username + color(p2Chr.conn, "green", "tp") + " logged" + color(p2Chr.conn, "reset", "reset") + " out, you win!\n\n> "))
+				p2Chr.conn.mu.Lock()
+				p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(p2Chr.conn, "cyan", "tp") + connection.session.username + color(p2Chr.conn, "green", "tp") + " logged" + color(p2Chr.conn, "reset", "reset") + " out, you win!\n\n> " + p2Chr.conn.currentInput))
+				p2Chr.conn.mu.Unlock()
 				connection.store.Write([]byte("\nYou died!"))
 				if p1Chr.coins == 0 {
 					p1Chr.conn.store.Write([]byte("\n" + connection.session.username + "didn't have any coins for you to loot!"))

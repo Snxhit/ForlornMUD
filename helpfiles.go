@@ -32,7 +32,7 @@ var HelpEntries = []HelpEntry{
 			"I promise it won't take too long :)",
 			"",
 			"- help help",
-			"- help commands",
+			"- help commands <-- lists all commands",
 			"- help movement",
 			"- help rooms",
 			"- help indexing",

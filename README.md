@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771271258/Untitled197_20260216231412_rdbuqx.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-90h%2004m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-92h%2028m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -22,7 +22,7 @@
   - [For Users](#for-users) <- Users click here!
   - [Self-Hosting](#self-hosting)
 - [Related Projects](#related-projects)
-- [Screenshots](#screenshots) <- For instructions video
+- [Screenshots](#screenshots) <- For gameplay!
 - [What I Learned](#what-i-learned)
 - [About Me](#about-me)
 
@@ -201,27 +201,43 @@ https://github.com/user-attachments/assets/4bd01f93-e627-4950-9fc2-7a2c8a50bc4a
 - **Combat system**<br>
 Item drops, coins, exp, levels, and more!
 
-  ![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_1_dxk4oq.png)<br>
+  ![Combat System](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456882/2026-03-02_18-23_hfkgzb.png)<br>
 Defeat, respawning system
 
   ![Combat System 2](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-38_tw4ceh.png)
 
+- **Messaging system**<br>
+You can message players in game!
+
+  ![Messaging](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456881/2026-03-02_18-27_afh3au.png)
+
 - **Merchants**<br>
-Listing, buying and selling
+Listing, buying and selling<br>
+Use `list <keyword>` if you see a mob with a green "M" next to their name!
 
   ![Merchants](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-39_kxfarl.png)
 
+- **Collectable armor sets**<br>
+This is an end-game armor set!<br>
+
+  ![Armor sets](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456882/2026-03-02_18-25_gw2zru.png)
+
 - **Profile**
 
-  ![Profile](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-45_svk09j.png)
+  ![Profile](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456882/2026-03-02_18-24_b99w6o.png)
 
 - **World exploration**
 
-  ![Exploration](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-40_gdf9uc.png)
+  ![Exploration](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456883/2026-03-02_18-29_cfqibd.png)
 
 - **Training system**
 
-  ![Training](https://res.cloudinary.com/dp7g5aflo/image/upload/v1771233402/2026-02-16_14-45_1_zav7i2.png)
+  ![Training](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456882/2026-03-02_18-23_1_o6416j.png)
+
+- **In-Game Help**<br>
+The game has a built in `help` command that shows detailed information about any topic or command!<br>
+
+  ![Entities Help](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772457480/2026-03-02_18-47_j4ob7s.png)
 
 
 ---
@@ -265,9 +281,9 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 ## Project Status
 
-**Version**: v0.1.3<br>
-**Latest Release Version**: v0.1.3<br>
-**Time Spent**: 90 Hours 04 Minutes<br>
+**Version**: v0.1.4<br>
+**Latest Release Version**: v0.1.4<br>
+**Time Spent**: 92 Hours 28 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---

@@ -29,8 +29,10 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					msg += t
 					msg += " "
 				}
-				msg += "\b\".\n\n> "
+				c.conn.mu.Lock()
+				msg += "\b\".\n\n> " + c.conn.currentInput
 				c.conn.store.Write([]byte(msg))
+				c.conn.mu.Unlock()
 				stream.Write([]byte("\n  Message sent!\n"))
 				playerFound = true
 				break
@@ -44,6 +46,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 	switch len(cmdTokens) {
 	case 1:
 		switch cmdTokens[0] {
+		case "test":
+			stream.Write([]byte("a"))
 		case "exit", "quit":
 			HandleClientDisconnect(connection, world, db)
 			return 0
@@ -549,7 +553,9 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					*p2Idx = p2Index
 
 					stream.Write([]byte("\n  Engaging " + color(connection, "cyan", "tp") + p2Chr.conn.session.username + color(connection, "reset", "reset") + "\n"))
-					p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " wants to fight!\n\n> "))
+					p2Chr.conn.mu.Lock()
+					p2Chr.conn.store.Write([]byte("\x1b[2K\r  " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " wants to fight!\n\n> " + p2Chr.conn.currentInput))
+					p2Chr.conn.mu.Unlock()
 					p2Chr.inCombat = true
 					p2Chr.targetID = p1Idx
 					p2Chr.targetType = &TargetPlayer
@@ -800,20 +806,27 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			} else if connection.session.character.trains < n {
 				stream.Write([]byte("\n  You do not have enough trains!\n"))
 			} else {
+				st := 0
 				for range n {
 					switch cmdTokens[2] {
 					case "str":
 						connection.session.character.baseStats.Str += 1
+						st = connection.session.character.baseStats.Str
 					case "dex":
 						connection.session.character.baseStats.Dex += 1
+						st = connection.session.character.baseStats.Str
 					case "agi":
 						connection.session.character.baseStats.Agi += 1
+						st = connection.session.character.baseStats.Str
 					case "stam":
 						connection.session.character.baseStats.Stam += 1
+						st = connection.session.character.baseStats.Str
 					case "int":
 						connection.session.character.baseStats.Int += 1
+						st = connection.session.character.baseStats.Str
 					case "hp":
 						connection.session.character.maxHp += 10
+						st = connection.session.character.baseStats.Str
 					}
 				}
 				connection.session.character.trains -= n
@@ -823,7 +836,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				if cmdTokens[2] == "hp" {
 					stream.Write([]byte("\n  You train " + strconv.Itoa(n) + " time(s) and increase your maximum " + color(connection, "cyan", "tp") + cmdTokens[2] + color(connection, "reset", "reset") + " by " + strconv.Itoa(n*10) + "! (" + strconv.Itoa(connection.session.character.maxHp) + ")\n"))
 				} else {
-					stream.Write([]byte("\n  You train " + strconv.Itoa(n) + " time(s) and increase your " + color(connection, "cyan", "tp") + cmdTokens[2] + color(connection, "reset", "reset") + " by " + strconv.Itoa(n) + "! (" + strconv.Itoa(n) + ")\n"))
+					stream.Write([]byte("\n  You train " + strconv.Itoa(n) + " time(s) and increase your " + color(connection, "cyan", "tp") + cmdTokens[2] + color(connection, "reset", "reset") + " by " + strconv.Itoa(n) + "! (" + strconv.Itoa(st) + ")\n"))
 				}
 				stream.Write([]byte("  You now have " + color(connection, "cyan", "tp") + strconv.Itoa(connection.session.character.trains) + color(connection, "reset", "reset") + " trains remaining.\n"))
 			}
