@@ -84,10 +84,11 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		pExp := conn.session.character.exp
 		pLvl := conn.session.character.level
 		expL := math.Floor(float64(pExp) * 0.03)
+		lvlL := pLvl - int(math.Floor((float64(pExp)-expL)/100.0))
 		if math.Floor((float64(pExp)-expL)/100.0) < float64(pLvl) {
-			conn.session.character.level -= 1
-			conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!"))
-			conn.store.Write([]byte(color(conn, "green", "tp") + "\n  You " + color(conn, "red", "tp") + "lost" + color(conn, "reset", "reset") + " 1 level!" + "\n\n> "))
+			conn.session.character.level -= lvlL
+			conn.store.Write([]byte("\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!"))
+			conn.store.Write([]byte("\n  You " + color(conn, "red", "tp") + "lost" + color(conn, "reset", "reset") + " " + strconv.Itoa(lvlL) + " level(s)!" + "\n\n> "))
 		} else {
 			conn.store.Write([]byte("\n  You " + color(conn, "red", "tp") + "lose" + color(conn, "reset", "reset") + " 3% of your exp as a penalty for death!" + "\n\n> "))
 		}
