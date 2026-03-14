@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 func dbInit(db *sql.DB) {
@@ -328,6 +329,48 @@ func objectsInit(db *sql.DB, world *World) {
 
 		spawner := Spawner{id, lID, tType, tID, dur, maxSpawns, int(world.tick) + dur}
 		world.spawners = append(world.spawners, spawner)
+	}
+
+	c_rows, err := db.Query("SELECT id, name, tag, owner_id, status, created_at FROM clans")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer c_rows.Close()
+
+	for c_rows.Next() {
+		var id int
+		var name string
+		var tag string
+		var ownerID int
+		var status string
+		var createdAt time.Time
+		c_rows.Scan(&id, &name, &tag, &ownerID, &status, &createdAt)
+
+		clan := Clan{id, name, tag, ownerID, createdAt, status, []int{}}
+		world.clans[id] = &clan
+	}
+
+	p_rows, err := db.Query("SELECT id, username, clan_id FROM players")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer p_rows.Close()
+
+	for p_rows.Next() {
+		var id int
+		var username string
+		var clanID sql.NullInt64
+		p_rows.Scan(&id, &username, &clanID)
+
+		fmt.Println(clanID)
+
+		if clanID.Valid {
+			if world.clans[int(clanID.Int64)].ownerID != id {
+				world.clans[int(clanID.Int64)].members = append(world.clans[int(clanID.Int64)].members, id)
+			}
+		}
+		world.playerList[id] = &PlayerData{id, username, false}
+		fmt.Println(world.playerList)
 	}
 
 	m_rows, err := db.Query("SELECT entityID, sellRate, buyRate FROM merchants")

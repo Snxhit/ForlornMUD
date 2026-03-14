@@ -1,5 +1,26 @@
 INSERT OR IGNORE INTO rooms (id, name, description, n, s, w, e) VALUES
-(0, 'Welcome Plaza', 'You stand at the heart of Flavortown, a bustling plaza with a giant neon fork. The air is thick with the stank of programmers.', 1, -1, -1, 2),
+-- tutorial area
+(100, 'Academy Entrance', 'You stand at the entrance of the great academy of Forlorn!', 101, -1, -1, -1),
+(101, 'Academy Foyer', 'You see a lot of people moving around while holding maps.', 113, 100, 112, 102),
+(102, 'Combat Class', 'You see weapons and potions laying around.', -1, -1, 101, 103),
+(112, 'Gym Class', 'You see weights and dumbbells lying around.', -1, -1, -1, 101),
+(113, 'Academy Pathway', 'You see a lot of people moving around while holding maps.', 116, 101, 115, 114),
+(116, 'Academy Fountain', 'You see a majestic water fountain!', 0, 113, -1, 117),
+(114, 'Economy Class', 'You see paper and marker lying around.', -1, -1, 113, -1),
+(115, 'Social Class', 'You see people interacting with each other.', -1, -1, -1, 113),
+(117, 'Academy Library', 'You see books. A lot of books.', -1, -1, 116, -1),
+(103, 'Training Ground Entrance', 'You stand at the entrance of the covered training ground.', -1, 106, 102, 104),
+(104, 'Training Ground Sideline', 'You stand at the northern sidelines of the covered training ground.', -1, 111, 103, 105),
+(105, 'Training Ground Corner', 'You stand at the north-eastern corner of the covered training ground.', -1, 110, 104, -1),
+(106, 'Training Ground Sideline', 'You stand in the western sidelines of the covered training ground.', 103, 107, -1, 111),
+(107, 'Training Ground Corner', 'You stand at the south-western corner of the covered training ground.', 106, -1, -1, 108),
+(108, 'Training Ground Sideline', 'You stand in the southern sidelines of the covered training ground.', 111, -1, 107, 109),
+(109, 'Training Ground Corner', 'You stand at the south-eastern corner of the covered training ground.', 110, -1, 108, -1),
+(110, 'Training Ground Sideline', 'You stand in the eastern sidelines of the covered training ground.', 105, 109, 111, -1),
+(111, 'Training Ground Center', 'You stand in the center of the covered training ground.', 104, 108, 106, 110),
+
+
+(0, 'Welcome Plaza', 'You stand at the heart of Flavortown, a bustling plaza with a giant neon fork. The air is thick with the stank of programmers.', 1, 101, -1, 2),
 (1, 'Flavor Fountain', 'A fountain sprays rainbow colored soda. Locals gather here to chat and sip.', 7, 0, -1, 3),
 (2, 'Bent Path', 'The path curves along a canal lined with food stalls. A shipwright stands at east.', -1, -1, 0, 4),
 (3, 'Fraud Squad HQ', 'A sleek building with “Fraud Squad” in bold letters. Agents monitor the town’s flavoral integrity.', -1, -1, 1, 5),

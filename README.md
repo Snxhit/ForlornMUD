@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771271258/Untitled197_20260216231412_rdbuqx.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-92h%2028m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-126h%2028m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -31,9 +31,10 @@
 ## Overview
 
 This project was created in [FlavorTown](https://flavortown.hackclub.com/)!<br>
-**Includes a Flavortown map with over 55 rooms!**
+**Includes a Flavortown map with over 75 rooms!**
 
 **Project Highlights**:
+
 - Real-time multiplayer MUD engine with web-based and terminal clients!
 - Dynamic world with entity, item spawners, merchants, and a flexible stats, leveling system!
 - Thought out combat mechanics, including PvP, PvE, with looting and leveling!
@@ -44,6 +45,8 @@ This project was created in [FlavorTown](https://flavortown.hackclub.com/)!<br>
 ## Features
 
 - Flexible entity & item system using spawners for dynamic world population.
+- Detailed tutorial with a robust NPC system!
+- Clans system to allow players to improve the multiplayer experience.
 - Stat system for players and entities, including item buffs and modifiers.
 - Combat system with scaling, random factors, dodging mechanics, and looting and item drops.
 - Merchant entities for buying/selling items, simulating an in-game economy.
@@ -71,6 +74,7 @@ This project was created in [FlavorTown](https://flavortown.hackclub.com/)!<br>
 ---
 
 ## Architecture
+
 ```
 - main.go: Entry point, owns all objects, handles networking, client connections, and world initialization.
 - commands.go: Processes player input and executes game logic.
@@ -111,7 +115,7 @@ Server status: OFFLINE
 
    You will be prompted for a username and a password.
 
-#### Or, alternatively:
+#### Or, alternatively
 
 1. You may connect to the instance by following the steps mentioned in the [Self-Hosting](#self-hosting) section,
     - But, replace Netcat's destination from `localhost` to `forlorn.snxhit.me`!
@@ -120,6 +124,7 @@ Server status: OFFLINE
 For access to UI elements and a better gameplay experience, stick to the web client!
 
 #### In-Game Help
+
 - To get started with the game, use `help newplayer` for a guided tutorial!
 
 ---
@@ -181,6 +186,7 @@ Consider deploying your instance on a VPS instead of port forwarding locally, or
 ---
 
 ## Related Projects
+
 - [ForlornClientWeb](https://github.com/Snxhit/ForlornClientWeb) <br>
 A web-based client for ForlornMUD, built with xterm.js for a modern MUD experience by implementing reactive UI!<br>
 It connects to the game via WebSockets, making it accessible from any browser.
@@ -192,9 +198,10 @@ This enables playing from the browser without requiring direct TCP support.
 ---
 
 ## Screenshots
+
 - **Preview**
 
-https://github.com/user-attachments/assets/4bd01f93-e627-4950-9fc2-7a2c8a50bc4a
+<https://github.com/user-attachments/assets/4bd01f93-e627-4950-9fc2-7a2c8a50bc4a>
 
   Sorry for the bad quality.
 
@@ -239,7 +246,6 @@ The game has a built in `help` command that shows detailed information about any
 
   ![Entities Help](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772457480/2026-03-02_18-47_j4ob7s.png)
 
-
 ---
 
 ## What I Learned
@@ -247,10 +253,12 @@ The game has a built in `help` command that shows detailed information about any
 Building this project taught me quite a lot:
 
 ### Technical Skills
+
 - **Golang**: This was my first time using Go, and I loved it!
 - **SQL**: Although it was long overdue, I finally learnt SQL and DBMS from scratch!
 
 ### Problem Solving
+
 - Managing time working on projects because this time it actually mattered.
 - Managing larger codebases than I'm used to.
 - Structuring servers like this with a lot of reusable logic (Learnt this the hard way.)
@@ -260,6 +268,7 @@ Building this project taught me quite a lot:
 - Properly using a VCS!
 
 ### Personal
+
 1. Working on something till I'm satisfied with it.
 2. Managing scope creep.
 3. Keeping track of work status instead of winging it and working on whatever, whenever.
@@ -281,9 +290,9 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 ## Project Status
 
-**Version**: v0.1.4<br>
+**Version**: v0.2.0<br>
 **Latest Release Version**: v0.1.4<br>
-**Time Spent**: 92 Hours 28 Minutes<br>
+**Time Spent**: 126 Hours 28 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---

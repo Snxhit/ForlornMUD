@@ -1,3 +1,12 @@
+CREATE TABLE IF NOT EXISTS clans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    tag TEXT,
+    owner_id INTEGER NOT NULL,
+    status STRING,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS spawners (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     locationID INT,
@@ -18,8 +27,10 @@ CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
+    clan_id INT,
     hp INT,
     str INT, dex INT, agi INT, stam INT, int INT,
+    inv_limit INT,
     exp INT,
     level INT,
     trains INT,

@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,16 +21,18 @@ func validateInt(input string) (bool, int) {
 }
 
 func CreateAndInsertItem(connection *ConnectionData, world *World, db *sql.DB, tID int) {
-	prom, _ := db.Exec(
+	prom, err := db.Exec(
 		"INSERT INTO items (templateID, locationType, locationID, equipped) VALUES (?, ?, ?, ?)",
 		tID, "player", connection.session.id, false,
 	)
+	if err != nil {
+		fmt.Println("CreateAndInsertItem:", err)
+		return
+	}
 	x, _ := prom.LastInsertId()
 	world.items[int(x)] = &Item{int(x), tID, "player", connection.session.id, false}
 }
 
-// THIS IS BUGGED :(
-// idek whats wrong :(
 func CreateAndInsertItemBatched(connection *ConnectionData, world *World, db *sql.DB, tID int, qty int) {
 	vals := ""
 	args := make([]any, 0, qty*4)
@@ -57,10 +61,14 @@ func CreateAndInsertItemBatched(connection *ConnectionData, world *World, db *sq
 }
 
 func CreateAndPlaceItem(world *World, db *sql.DB, tID int, lID int) {
-	prom, _ := db.Exec(
+	prom, err := db.Exec(
 		"INSERT INTO items (templateID, locationType, locationID, equipped) VALUES (?, ?, ?, ?)",
 		tID, "room", lID, false,
 	)
+	if err != nil {
+		fmt.Println("CreateAndPlaceItem:", err)
+		return
+	}
 	x, _ := prom.LastInsertId()
 	world.items[int(x)] = &Item{int(x), tID, "room", lID, false}
 	world.nodeList[lID].itemIDs = append(world.nodeList[lID].itemIDs, int(x))
@@ -72,16 +80,21 @@ func DeleteItem(connection *ConnectionData, world *World, db *sql.DB, iID int) {
 }
 
 func SpawnAndInsertEntity(world *World, db *sql.DB, lID int, tID int) {
-	prom, _ := db.Exec(
+	prom, err := db.Exec(
 		"INSERT OR IGNORE INTO entities (templateID, hp, locationID) VALUES (?, ?, ?)",
 		tID, 0, lID,
 	)
+	if err != nil {
+		fmt.Println("SpawnAndInsertEntity:", err)
+		return
+	}
 	x, _ := prom.LastInsertId()
 	world.entities[int(x)] = &Entity{int(x), tID, nil, false, world.EntityTemplates[tID].maxHp, lID}
 	world.nodeList[lID].entityIDs = append(world.nodeList[lID].entityIDs, int(x))
 }
 
 func HandleMovement(connection *ConnectionData, world *World) {
+	checkReturn(connection.session.character)
 	r := world.nodeList[connection.session.character.locationID]
 	//connection.store.Write([]byte("\n\033[32m" + r.name + "\033[0m \n"))
 	connection.store.Write([]byte("\n" + color(connection, "green", "tp") + r.name + color(connection, "reset", "reset") + " \n"))
@@ -111,7 +124,11 @@ func HandleLook(world *World, connection *ConnectionData) {
 		s := strconv.Itoa(num)
 		stream.Write([]byte("  " + color(connection, "cyan", "tp") + s + color(connection, "reset", "reset") + strings.Repeat(" ", 3-len(s)) + " | " + world.ItemTemplates[tID].name + "\n"))
 	}
-
+	for _, npc := range world.npcs {
+		if npc.locationID == connection.session.character.locationID {
+			stream.Write([]byte(color(connection, "red", "tp") + "  ! " + color(connection, "yellow", "tp") + npc.name + color(connection, "reset", "reset") + " looks like they have advice.\n"))
+		}
+	}
 	for _, entID := range world.nodeList[connection.session.character.locationID].entityIDs {
 		if !world.entities[entID].inCombat && world.merchants[entID] == nil {
 			stream.Write([]byte("  " + color(connection, "cyan", "tp") + world.EntityTemplates[world.entities[entID].templateID].name + color(connection, "reset", "reset") + "\n    " + world.EntityTemplates[world.entities[entID].templateID].description + "\n"))
@@ -125,8 +142,14 @@ func HandleLook(world *World, connection *ConnectionData) {
 	}
 	for _, conn := range world.connections {
 		if conn.session.authorized && conn.session.character.locationID == connection.session.character.locationID && conn.session.id != connection.session.id {
+			t := ""
+			if conn.session.character.clan != nil {
+				if conn.session.character.clan.tag != "" {
+					t = color(conn, "reset", "reset") + "[" + color(conn, "red", "white") + conn.session.character.clan.tag + color(conn, "reset", "reset") + "] "
+				}
+			}
 			if !conn.session.character.inCombat {
-				stream.Write([]byte(color(connection, "cyan", "tp") + "  * " + color(connection, "yellow", "tp") + conn.session.username + color(connection, "reset", "reset") + " looks at you.\n"))
+				stream.Write([]byte(color(connection, "cyan", "tp") + "  * " + t + color(connection, "yellow", "tp") + conn.session.username + color(connection, "reset", "reset") + " looks at you.\n"))
 			} else {
 				stream.Write([]byte(color(connection, "red", "tp") + "C" + color(connection, "cyan", "tp") + " * " + color(connection, "yellow", "tp") + conn.session.username + color(connection, "reset", "reset") + " looks at you.\n"))
 			}
@@ -181,8 +204,16 @@ func calcExpMultiplier(diff int) float64 {
 func printProfileCard(connection *ConnectionData, name string, nameMedian int, c string, t string, lvl string, exp string, expBars int, str string, dex string, agi string, stam string, int string, cardLength int, eList [6]string, hp string, maxHp string, hpBars int) {
 	stream := connection.store
 
+	ct := ""
+	if connection.session.character.clan != nil {
+		if connection.session.character.clan.tag != "" {
+			ct = color(connection, "reset", "reset") + "[" + color(connection, "red", "white") + connection.session.character.clan.tag + color(connection, "reset", "reset") + "] "
+		}
+	}
+	ct += color(connection, "green", "tp") + connection.session.username + color(connection, "reset", "reset")
+
 	if !connection.isPrettyEnabled {
-		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + name + color(connection, "reset", "reset")
+		us := "  | " + strings.Repeat(" ", cardLength/2-nameMedian) + ct
 		stream.Write([]byte("\n  +" + strings.Repeat("-", cardLength) + "+\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+2) + " |\n"))
 		stream.Write([]byte("  +" + strings.Repeat("-", 27) + "+" + strings.Repeat("-", cardLength-28) + "+\n"))
@@ -221,7 +252,7 @@ func printProfileCard(connection *ConnectionData, name string, nameMedian int, c
 		stream.Write([]byte("  +" + strings.Repeat("-", cardLength) + "+\n"))
 
 	} else {
-		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + color(connection, "green", "tp") + name + color(connection, "reset", "reset")
+		us := "  │ " + strings.Repeat(" ", cardLength/2-nameMedian) + ct
 		stream.Write([]byte("\n  ╭" + strings.Repeat("─", cardLength) + "╮\n"))
 		stream.Write([]byte(us + strings.Repeat(" ", cardLength-visibleLen(us)+4) + " │\n"))
 		stream.Write([]byte("  ├" + strings.Repeat("─", 27) + "┬" + strings.Repeat("─", cardLength-28) + "┤\n"))
@@ -272,6 +303,26 @@ func visibleLen(s string) int {
 func visibleSlice(s string, start int, end int) string {
 	cleanStr := ansiRegex.ReplaceAllString(s, "")
 	return cleanStr[start:end]
+}
+
+func calcInvLimit(stam int) int {
+	return int(20 + 3*(math.Pow(float64(stam), 1.40)))
+}
+
+func calcUsedLimit(iIDs map[int]int, world *World, connection *ConnectionData) int {
+	if len(iIDs) == 0 {
+		iIDs = map[int]int{}
+		for _, item := range world.items {
+			if world.items[item.id].locationType == "player" && world.items[item.id].locationID == connection.session.id && !world.items[item.id].equipped {
+				iIDs[world.items[item.id].templateID] += 1
+			}
+		}
+	}
+	held := 0
+	for _, qty := range iIDs {
+		held += qty
+	}
+	return held
 }
 
 func glphys(conn *ConnectionData, glyph string) string {

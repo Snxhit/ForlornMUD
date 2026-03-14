@@ -42,14 +42,33 @@ type World struct {
 	characters      []*Character
 	nodeList        map[int]*Room
 	spawners        []Spawner
+	npcs            map[int]*NPC
 	ItemTemplates   map[int]*ItemTemplate
 	EntityTemplates map[int]*EntityTemplate
 	items           map[int]*Item
 	entities        map[int]*Entity
 	merchants       map[int]*Merchant
+	playerList      map[int]*PlayerData
 	connections     []*ConnectionData
+	clans           map[int]*Clan
 	tick            int64
 	mu              sync.Mutex
+}
+
+type PlayerData struct {
+	id       int
+	username string
+	online   bool
+}
+
+type Clan struct {
+	id        int
+	name      string
+	tag       string
+	ownerID   int
+	createdAt time.Time
+	status    string
+	members   []int
 }
 
 type Stats struct {
@@ -181,10 +200,12 @@ type LoginContext struct {
 	id         int
 	username   string
 	password   string
+	clan       *Clan
 	hp         int
 	maxHp      int
 	locationID int
 	baseStats  Stats
+	invLimit   int
 	exp        int
 	level      int
 	trains     int
@@ -192,24 +213,39 @@ type LoginContext struct {
 }
 
 type Character struct {
-	worldID    int
-	hp         int
-	maxHp      int
-	baseStats  Stats
-	exp        int
-	level      int
-	trains     int
-	coins      int
-	equipment  map[string]int
-	modifiers  []StatModifier
-	locationID int
-	targetType *string
-	targetID   *int
-	inCombat   bool
-
+	worldID         int
+	clan            *Clan
+	hp              int
+	maxHp           int
+	baseStats       Stats
+	invLimit        int
+	exp             int
+	level           int
+	trains          int
+	coins           int
+	equipment       map[string]int
+	modifiers       []StatModifier
+	locationID      int
+	targetType      *string
+	targetID        *int
+	inCombat        bool
 	lastInteraction int
+	activeConvo     *NPCConversation
 	id              int
+	pendingConfirm  *ConfirmationContext
 	conn            *ConnectionData
+}
+
+type ConfirmFunc func(val bool, db *sql.DB, world *World, conn *ConnectionData)
+
+type ConfirmationContext struct {
+	function ConfirmFunc
+	prompt   string
+}
+
+func AskConfirm(conn *ConnectionData, prompt string, f ConfirmFunc) {
+	conn.session.character.pendingConfirm = &ConfirmationContext{f, prompt}
+	conn.store.Write([]byte(prompt))
 }
 
 func (char Character) getEffectiveStat(stat string) int {
@@ -234,11 +270,16 @@ func main() {
 	}
 	defer db.Close()
 
+	db.SetMaxOpenConns(1)
+	db.Exec("PRAGMA journal_mode=WAL")
+	db.Exec("PRAGMA busy_timeout=5000")
+
 	dbInit(db)
 
-	world := World{[]*Character{}, map[int]*Room{}, []Spawner{}, map[int]*ItemTemplate{}, map[int]*EntityTemplate{}, map[int]*Item{}, map[int]*Entity{}, map[int]*Merchant{}, []*ConnectionData{}, 0, sync.Mutex{}}
+	world := World{[]*Character{}, map[int]*Room{}, []Spawner{}, map[int]*NPC{}, map[int]*ItemTemplate{}, map[int]*EntityTemplate{}, map[int]*Item{}, map[int]*Entity{}, map[int]*Merchant{}, map[int]*PlayerData{}, []*ConnectionData{}, map[int]*Clan{}, 0, sync.Mutex{}}
 
 	objectsInit(db, &world)
+	defineNPCs(&world)
 
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -257,7 +298,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			sesh := Session{false, 0, "", "", &LoginContext{false, 0, "", "", 100, 0, 0, Stats{1, 1, 1, 1, 1}, 100, 1, 0, 0}, nil}
+			sesh := Session{false, 0, "", "", &LoginContext{false, 0, "", "", nil, 100, 0, 0, Stats{1, 1, 1, 1, 1}, 1, 100, 1, 0, 0}, nil}
 			conn := ConnectionData{TotalConnections, newConn, &sesh, false, true, true, "", sync.Mutex{}}
 
 			reader := bufio.NewReader(newConn)
@@ -318,14 +359,19 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 		connection.currentInput = ""
 		connection.mu.Unlock()
 		if len(bufCmd) == 0 {
-			stream.Write([]byte("\n> "))
-			continue
+			if connection.session.character.pendingConfirm != nil {
+				stream.Write([]byte("\n  => "))
+				continue
+			} else {
+				stream.Write([]byte("\n> "))
+				continue
+			}
 		}
 		var strCmd string
 		if connection.session.authorized {
 			inp := strings.Split(string(bufCmd), " ")
-			if inp[0] == "fight" || inp[0] == "f" || inp[0] == "kick" || inp[0] == "sayto" || inp[0] == "tell" {
-				rawCmd := string(bufCmd)
+			inp0 := strings.ToLower(inp[0])
+			if inp0 == "fight" || inp0 == "f" || inp0 == "kick" || inp0 == "sayto" || inp0 == "tell" {
 				isPlayer := false
 				if len(inp) > 1 {
 					for _, c := range world.characters {
@@ -336,11 +382,21 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 					}
 				}
 				if isPlayer {
-					strCmd = rawCmd
+					inp[0] = inp0
+					strCmd = strings.Join(inp, " ")
 				} else {
-					strCmd = strings.ToLower(rawCmd)
+					strCmd = strings.ToLower(string(bufCmd))
 				}
-			} else if inp[0] == "character" || inp[0] == "char" {
+			} else if inp0 == "clan" && len(inp) >= 3 {
+				inp1 := strings.ToLower(inp[1])
+				if inp1 == "create" || inp1 == "tag" || inp1 == "join" || inp1 == "kick" {
+					inp[0] = inp0
+					inp[1] = inp1
+					strCmd = strings.Join(inp, " ")
+				} else {
+					strCmd = strings.ToLower(string(bufCmd))
+				}
+			} else if inp0 == "character" || inp0 == "char" {
 				strCmd = string(bufCmd)
 			} else {
 				strCmd = strings.ToLower(string(bufCmd))
@@ -360,22 +416,27 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 				stream.Write([]byte("\n  No inputs can have spaces!\n"))
 			} else if len(cmdTokens) == 1 && len(connection.session.username) == 0 && len(cmdTokens[0]) > 3 && len(cmdTokens[0]) <= 14 {
 
-				row := db.QueryRow("SELECT id, username, password, hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID FROM players WHERE username = ?", cmdTokens[0])
+				row := db.QueryRow("SELECT id, username, password, clan_id, hp, str, dex, agi, stam, int, inv_limit, exp, level, trains, maxHp, coins, locationID FROM players WHERE username = ?", cmdTokens[0])
 
 				l := connection.session.loginctx
 				var str int
 				var dex int
 				var agi int
 				var stam int
+				var clanID *int
 				var int int
-				err := row.Scan(&l.id, &l.username, &l.password, &l.hp, &str, &dex, &agi, &stam, &int, &l.exp, &l.level, &l.trains, &l.maxHp, &l.coins, &l.locationID)
+				err := row.Scan(&l.id, &l.username, &l.password, &clanID, &l.hp, &str, &dex, &agi, &stam, &int, &l.invLimit, &l.exp, &l.level, &l.trains, &l.maxHp, &l.coins, &l.locationID)
 				connection.session.loginctx.baseStats = Stats{str, dex, agi, stam, int}
+				if clanID != nil {
+					l.clan = world.clans[*clanID]
+				}
 				if err != nil {
 					if err == sql.ErrNoRows {
 						stream.Write([]byte("\n  User " + cmdTokens[0] + " not found, creating user.\n"))
 						stream.Write([]byte("  Please enter a new password.\n"))
 						connection.session.username = cmdTokens[0]
 						connection.session.loginctx.newPlayer = true
+						connection.session.loginctx.locationID = 100
 					} else {
 						fmt.Println(err)
 					}
@@ -405,11 +466,13 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 						stream.Write([]byte("\n  Correct password! Logged in as " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + "!\n"))
 						connection.session.password = connection.session.loginctx.password
 						connection.session.id = connection.session.loginctx.id
+						fmt.Println(world.playerList)
+						world.playerList[connection.session.id].online = true
 						connection.session.authorized = true
 						TotalPlayers += 1
 						world.mu.Lock()
 						l := connection.session.loginctx
-						world.characters = append(world.characters, &Character{len(world.characters), l.hp, l.maxHp, l.baseStats, l.exp, l.level, l.trains, l.coins, map[string]int{}, []StatModifier{}, l.locationID, nil, nil, false, 0, connection.session.id, connection})
+						world.characters = append(world.characters, &Character{len(world.characters), l.clan, l.hp, l.maxHp, l.baseStats, l.invLimit, l.exp, l.level, l.trains, l.coins, map[string]int{}, []StatModifier{}, l.locationID, nil, nil, false, 0, nil, connection.session.id, nil, connection})
 						connection.session.character = world.characters[len(world.characters)-1]
 						world.mu.Unlock()
 						for _, i := range world.items {
@@ -421,8 +484,10 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 							}
 						}
 						stream.Write([]byte("  Welcome to the MUD!\n\n"))
-						connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
-						connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+						if connection.isClientWeb {
+							connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+							connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+						}
 						HandleMovement(connection, world)
 					} else {
 						stream.Write([]byte("\n  Wrong password!\n"))
@@ -430,13 +495,21 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 				} else {
 					stream.Write([]byte("\n  Welcome, " + color(connection, "cyan", "tp") + connection.session.username + color(connection, "reset", "reset") + " to the game!\n"))
 					world.mu.Lock()
-					world.characters = append(world.characters, &Character{len(world.characters), connection.session.loginctx.hp, 200, Stats{10, 10, 10, 10, 10}, 100, 1, 0, 0, map[string]int{}, []StatModifier{}, connection.session.loginctx.locationID, nil, nil, false, 0, 0, connection})
+					world.characters = append(world.characters, &Character{len(world.characters), nil, connection.session.loginctx.hp, 200, Stats{10, 10, 10, 10, 10}, calcInvLimit(10), 100, 1, 0, 0, map[string]int{}, []StatModifier{}, connection.session.loginctx.locationID, nil, nil, false, 0, nil, 0, nil, connection})
 					connection.session.character = world.characters[len(world.characters)-1]
 					hashedPass, err := bcrypt.GenerateFromPassword([]byte(cmdTokens[0]), bcrypt.DefaultCost)
 					world.mu.Unlock()
-					prom, err := db.Exec("INSERT INTO players (username, password, hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", connection.session.username, string(hashedPass), connection.session.character.hp, 10, 10, 10, 10, 10, 100, 1, 0, 200, 0, connection.session.character.locationID)
+					prom, err := db.Exec("INSERT INTO players (username, password, clan_id, hp, str, dex, agi, stam, int, inv_limit, exp, level, trains, maxHp, coins, locationID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", connection.session.username, string(hashedPass), nil, connection.session.character.hp, 10, 10, 10, 10, 10, connection.session.character.invLimit, 100, 1, 0, 200, 0, connection.session.character.locationID)
 					if err != nil {
 						fmt.Println(err)
+						stream.Write([]byte("\n  Failed to create account, please try again.\n> "))
+						world.mu.Lock()
+						world.characters = world.characters[:len(world.characters)-1]
+						world.mu.Unlock()
+						connection.session.character = nil
+						connection.session.username = ""
+						connection.session.loginctx.newPlayer = false
+						continue
 					}
 					id, err := prom.LastInsertId()
 					if err != nil {
@@ -446,12 +519,15 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 					connection.session.id = int(id)
 					connection.session.character.id = int(id)
 					connection.session.authorized = true
+					world.playerList[int(id)] = &PlayerData{int(id), connection.session.username, true}
 					TotalPlayers += 1
 					stream.Write([]byte("  Welcome to the MUD!\n\n"))
-					connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
-					connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+					if connection.isClientWeb {
+						connection.store.Write([]byte("\n\x01EXP " + "exp:" + strconv.Itoa(connection.session.character.exp) + " lvl:" + strconv.Itoa(connection.session.character.level) + " trains:" + strconv.Itoa(connection.session.character.trains) + "\n"))
+						connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+					}
 					HandleMovement(connection, world)
-					stream.Write([]byte("\x1b[2K\r\n  " + color(connection, "red", "tp") + "!!!" + color(connection, "reset", "reset") + " Please enter the command " + color(connection, "red", "tp") + "help newplayer" + color(connection, "reset", "reset") + " to get started." + color(connection, "red", "tp") + " !!! " + color(connection, "reset", "reset") + "\n "))
+					stream.Write([]byte("\x1b[2K\r\n  " + color(connection, "red", "tp") + "!!!" + color(connection, "reset", "reset") + " Please enter the command " + color(connection, "red", "tp") + "talk xamien" + color(connection, "reset", "reset") + " to get started." + color(connection, "red", "tp") + " !!! " + color(connection, "reset", "reset") + "\n "))
 				}
 			} else if len(cmdTokens[0]) < 5 {
 				stream.Write([]byte("\n  Too short!\n"))
@@ -461,15 +537,32 @@ func HandleNewClient(connection *ConnectionData, world *World, db *sql.DB) {
 
 			stream.Write([]byte("\n> "))
 		} else {
-			if !connection.session.character.inCombat {
-				x := Commands(cmdTokens, db, world, connection)
-				if x == 0 {
-					return
+			if connection.session.character.pendingConfirm == nil {
+				if !connection.session.character.inCombat {
+					x := Commands(cmdTokens, db, world, connection)
+					if x == 0 {
+						return
+					}
+				} else {
+					CommandsCombat(cmdTokens, db, world, connection)
+				}
+				if connection.session.character.pendingConfirm == nil {
+					stream.Write([]byte("\n> "))
 				}
 			} else {
-				CommandsCombat(cmdTokens, db, world, connection)
+				answer := strings.ToLower(strings.TrimSpace(cmdTokens[0]))
+				pc := connection.session.character.pendingConfirm
+				switch answer {
+				case "yes", "ye", "y", "yuh", "yea", "yeah":
+					connection.session.character.pendingConfirm = nil
+					pc.function(true, db, world, connection)
+				case "no", "n", "nah", "neh", "naw":
+					connection.session.character.pendingConfirm = nil
+					pc.function(false, db, world, connection)
+				default:
+					stream.Write([]byte(pc.prompt))
+				}
 			}
-			stream.Write([]byte("\n> "))
 		}
 	}
 }
@@ -531,9 +624,14 @@ func HandleClientDisconnect(connection *ConnectionData, world *World, db *sql.DB
 		TotalPlayers -= 1
 		s := connection.session.character.baseStats
 		c := connection.session.character
-		_, err := db.Exec("UPDATE players SET (hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, connection.session.id)
+		var clanID interface{}
+		if c.clan != nil {
+			clanID = c.clan.id
+		}
+		world.playerList[connection.session.id].online = false
+		_, err := db.Exec("UPDATE players SET (clan_id, hp, str, dex, agi, stam, int, inv_limit, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", clanID, c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.invLimit, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, connection.session.id)
 		fmt.Println(err)
-		world.characters[connection.session.character.worldID] = &Character{connection.session.character.worldID, 100, 0, Stats{1, 1, 1, 1, 1}, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, -1, nil}
+		world.characters[connection.session.character.worldID] = &Character{connection.session.character.worldID, nil, 100, 0, Stats{1, 1, 1, 1, 1}, 1, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, nil, -1, nil, nil}
 
 		for i, c := range world.connections {
 			if c == connection {

@@ -112,6 +112,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 		if conn.isClientWeb {
 			conn.store.Write([]byte("\n\x01COMBAT type:entity hp:" + strconv.Itoa(conn.session.character.hp) + " maxHp:" + strconv.Itoa(conn.session.character.maxHp) + " enemyName:\"None\" enemyHp:0 enemyMaxHp:0\n"))
 		}
+		checkKill(conn.session.character, world.entities[*conn.session.character.targetID].templateID)
 		conn.store.Write([]byte("\x1b[2K\r\n  You " + color(conn, "red", "tp") + "killed " + color(conn, "reset", "reset") + "a " + color(conn, "cyan", "tp") + world.EntityTemplates[world.entities[*conn.session.character.targetID].templateID].name + color(conn, "reset", "reset") + "!"))
 		c := rand.Intn(cMax-cMin) + cMin
 		conn.session.character.coins += c
@@ -127,11 +128,20 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 				} else {
 					qty = rand.Intn(d.max-d.min) + d.min
 				}
-				conn.store.Write([]byte("\n  You find " + color(conn, "yellow", "tp") + strconv.Itoa(qty) + "x " + color(conn, "cyan", "tp") + world.ItemTemplates[d.itemTemplateID].name + color(conn, "reset", "reset") + " on the corpse!"))
 				/*for range qty {
 					CreateAndInsertItem(conn, world, db, d.itemTemplateID)
 				}*/
-				CreateAndInsertItemBatched(conn, world, db, d.itemTemplateID, qty)
+				lim := calcUsedLimit(map[int]int{}, world, conn)
+				if lim+qty >= conn.session.character.invLimit {
+					diff := (lim + qty) - conn.session.character.invLimit
+					qty -= diff
+				}
+				if qty != 0 {
+					conn.store.Write([]byte("\n  You find " + color(conn, "yellow", "tp") + strconv.Itoa(qty) + "x " + color(conn, "cyan", "tp") + world.ItemTemplates[d.itemTemplateID].name + color(conn, "reset", "reset") + " on the corpse!"))
+					CreateAndInsertItemBatched(conn, world, db, d.itemTemplateID, qty)
+				} else {
+					conn.store.Write([]byte("\n  You find a few items, but decide not to take them because your inventory is too full."))
+				}
 			}
 		}
 		conn.store.Write([]byte("\n"))
@@ -146,6 +156,7 @@ func combatEntity(world *World, conn *ConnectionData, db *sql.DB) int {
 			conn.store.Write([]byte("\n  You now have " + color(conn, "yellow", "tp") + strconv.Itoa(trains) + color(conn, "cyan", "tp") + " more trains" + color(conn, "reset", "reset") + "!\n\n> "))
 			conn.session.character.level += lvls
 			conn.session.character.trains += trains
+			gainLvl(conn.session.character)
 		} else {
 			conn.store.Write([]byte("\n  You gain " + color(conn, "blue", "tp") + strconv.Itoa(int(exp)) + color(conn, "reset", "reset") + " exp from this fight!\n\n> "))
 		}
@@ -263,6 +274,7 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		p2Chr.conn.store.Write([]byte(color(p2Chr.conn, "green", "tp") + "\n  You are teleported to spawn!" + color(p2Chr.conn, "reset", "reset") + "\n\n> "))
 		conn.store.Write([]byte("\n  You " + color(p1Chr.conn, "red", "tp") + "killed " + color(p1Chr.conn, "cyan", "tp") + p2Chr.conn.session.username + color(p1Chr.conn, "reset", "reset") + "!"))
 		p2Chr.hp = p2Chr.maxHp
+		p2Chr.locationID = 0
 		HandleMovement(p2Chr.conn, world)
 		p1Chr.conn.store.Write([]byte("\n\n> "))
 		p2Chr.conn.store.Write([]byte("\n\n> "))
@@ -292,6 +304,7 @@ func combatPlayer(world *World, conn *ConnectionData) int {
 		}
 		p1Chr.conn.store.Write([]byte(color(p1Chr.conn, "green", "tp") + "\n  You are teleported to spawn!" + color(p1Chr.conn, "reset", "reset") + "\n\n> "))
 		p2Chr.conn.store.Write([]byte("\n  You " + color(p2Chr.conn, "red", "tp") + "killed " + color(p2Chr.conn, "cyan", "tp") + p1Chr.conn.session.username + color(p2Chr.conn, "reset", "reset") + "!"))
+		p1Chr.locationID = 0
 		p1Chr.hp = p1Chr.maxHp
 		HandleMovement(p1Chr.conn, world)
 		p2Chr.conn.store.Write([]byte("\n\n> "))

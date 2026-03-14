@@ -22,10 +22,14 @@ func ticks(world *World, db *sql.DB) {
 					world.mu.Unlock()
 					s := chr.baseStats
 					c := chr
-					_, err := db.Exec("UPDATE players SET (hp, str, dex, agi, stam, int, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, c.id)
+					var clanID interface{}
+					if c.clan != nil {
+						clanID = c.clan.id
+					}
+					_, err := db.Exec("UPDATE players SET (clan_id, hp, str, dex, agi, stam, int, inv_limit, exp, level, trains, maxHp, coins, locationID) = (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) WHERE id = ?", clanID, c.hp, s.Str, s.Dex, s.Agi, s.Stam, s.Int, c.invLimit, c.exp, c.level, c.trains, c.maxHp, c.coins, c.locationID, c.id)
 					fmt.Println(err)
 					world.mu.Lock()
-					world.characters[chr.worldID] = &Character{chr.worldID, 100, 0, Stats{1, 1, 1, 1, 1}, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, -1, nil}
+					world.characters[chr.worldID] = &Character{chr.worldID, nil, 100, 0, Stats{1, 1, 1, 1, 1}, 1, 0, 1, 0, 0, map[string]int{}, []StatModifier{}, 0, nil, nil, false, 0, nil, -1, nil, nil}
 				}
 			}
 			for _, conn := range world.connections {
@@ -77,6 +81,12 @@ func ticks(world *World, db *sql.DB) {
 						}
 					}
 				}
+				// ts complicated uhhh
+				/*				if conn.session.character.activeConvo != nil {
+								for conn.session.character.activeConvo.stage < len(conn.session.character.activeConvo.NPC.dialogue) {
+									d := conn.session.character.activeConvo.NPC.dialogue[conn.session.character.activeConvo.stage]
+								}
+							}*/
 			}
 			for i := range world.spawners {
 				s := &world.spawners[i]

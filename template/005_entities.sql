@@ -18,7 +18,11 @@ INSERT OR IGNORE INTO entity_templates VALUES
 (12,'PCB Credit Scalper','A shady figure selling PCB credits at totally reasonable prices.',120,120,120,120,120,120,0,99999,999,999,99999,99999,99999),
 (13,'AI Credit Dealer','A mysterious merchant with glowing eyes, calls himself Sam Altman.',130,130,130,130,130,130,0,99999,999,999,99999,99999,99999),
 (14,'Domain Broker','A slick-talking, orange cloud shaped merchant offering domain names for a small fee.',110,110,110,110,110,110,0,99999,999,999,99999,99999,99999),
-(15,'Flavor Tailor','A stylish chef who sews armor from well cooked ships.',99,99,99,99,99,99,0,99999,999,999,99999,99999,99999);
+(15,'Flavor Tailor','A stylish chef who sews armor from well cooked ships.',99,99,99,99,99,99,0,99999,999,999,99999,99999,99999),
+(19,'Small Training Dummy','Looks punchable. May tickle you.',2,2,3,2,2,10,0,100,2,2,100,50,200),
+(20,'Medium Training Dummy','Looks huggable. May tickle you.',2,2,3,2,2,10,0,300,3,3,150,100,300),
+(21,'Large Training Dummy','Looks intimidating. May hurt you.',3,2,4,2,2,10,0,500,4,4,200,200,500),
+(22,'Dummy Merchant','Looks like it wants to sell you something.',99,99,99,99,99,99,0,999,999,999,99999,99999,99999);
 
 INSERT OR IGNORE INTO entity_template_drops VALUES
 (0,0,80,1,3),

@@ -17,7 +17,9 @@ INSERT OR IGNORE INTO item_templates VALUES
 (15,'Cooked Helmet','A helmet forged from caramel, warm to the touch.','head',0,40,30000),
 (16,'Cooked Chestplate','A chestplate roasted to perfection.','body',0,60,50000),
 (17,'Cooked Tights','Leggings spun from ramen. Im hungry.','legs',0,35,35000),
-(18,'Cooked Ring','A ring encrusted with a well cooked seal of approval!','ring',0,0,20000);
+(18,'Cooked Ring','A ring encrusted with a well cooked seal of approval!','ring',0,0,20000),
+(19,'Broken Wooden Sword','A very old, broken, blunt wooden sword.','mainhand',4,0,50),
+(20,'Wooden Stick','A wooden... stick?','item',0,0,0);
 
 INSERT OR IGNORE INTO item_template_modifiers VALUES
 (8,'str',5),
@@ -34,7 +36,8 @@ INSERT OR IGNORE INTO item_template_modifiers VALUES
 (17,'dex',8),
 (18,'str',5),
 (18,'int',5),
-(18,'agi',5);
+(18,'agi',5),
+(19,'str',1);
 
 INSERT OR IGNORE INTO item_template_effects VALUES
 (0,'hp',10),

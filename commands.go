@@ -13,6 +13,9 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 	connection.session.character.lastInteraction = 0
 	stream := connection.store
 
+	cmd := strings.Join(cmdTokens, " ")
+	checkCmd(connection.session.character, cmd)
+
 	if cmdTokens[0] == "sayto" || cmdTokens[0] == "tell" {
 		if len(cmdTokens) < 3 {
 			stream.Write([]byte("\n  Usage: sayto <player> <message>\n"))
@@ -25,15 +28,17 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			}
 			if c.conn.session.username == cmdTokens[1] && c.conn.session.username != connection.session.username {
 				msg := "\x1b[2K\r  " + color(c.conn, "cyan", "tp") + "* " + color(c.conn, "yellow", "tp") + connection.session.username + " " + color(c.conn, "reset", "reset") + "says, \""
-				for _, t := range cmdTokens[2:len(cmdTokens)] {
-					msg += t
-					msg += " "
-				}
+				msg += color(c.conn, "cyan", "tp") + strings.Join(cmdTokens[2:], " ") + color(c.conn, "reset", "reset")
 				c.conn.mu.Lock()
-				msg += "\b\".\n\n> " + c.conn.currentInput
+				msg += "\"\n\n> " + c.conn.currentInput
 				c.conn.store.Write([]byte(msg))
 				c.conn.mu.Unlock()
-				stream.Write([]byte("\n  Message sent!\n"))
+
+				msgS := "\n  " + color(connection, "cyan", "tp") + "* " + color(connection, "yellow", "tp") + "You" + color(connection, "reset", "reset") + " say to " + color(connection, "yellow", "tp") + c.conn.session.username + " " + color(connection, "reset", "reset") + "\""
+				msgS += color(connection, "cyan", "tp") + strings.Join(cmdTokens[2:], " ") + color(connection, "reset", "reset")
+				msgS += "\"\n" + c.conn.currentInput
+
+				stream.Write([]byte(msgS))
 				playerFound = true
 				break
 			}
@@ -43,11 +48,43 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 		}
 		return 1
 	}
+	if len(cmdTokens) >= 2 && (cmdTokens[0] == "clan" && cmdTokens[1] == "msg" || cmdTokens[0] == "clan" && cmdTokens[1] == "say" || cmdTokens[0] == "clan" && cmdTokens[1] == "chat") {
+		if connection.session.character.clan == nil {
+			stream.Write([]byte("\n  You're not in a clan!\n"))
+			return 1
+		}
+		if len(cmdTokens) < 3 {
+			stream.Write([]byte("\n  Usage: clan <msg|say|chat> <message>\n"))
+			return 1
+		}
+		mc := 0
+		for _, c := range world.characters {
+			if c.conn == nil || c.conn.session == nil {
+				continue
+			}
+			if c.clan != nil && c.clan.id == connection.session.character.clan.id && c.conn.session.username != connection.session.username {
+				msg := "\x1b[2K\r  " + color(c.conn, "cyan", "tp") + "$ clanchat: " + color(c.conn, "green", "tp") + connection.session.username + " " + color(c.conn, "reset", "reset") + "says, \""
+				msg += color(c.conn, "yellow", "tp") + strings.Join(cmdTokens[2:], " ") + color(c.conn, "reset", "reset")
+				c.conn.mu.Lock()
+				msg += "\"\n\n> " + c.conn.currentInput
+				c.conn.store.Write([]byte(msg))
+				c.conn.mu.Unlock()
+				mc++
+			}
+		}
+		if mc != 0 {
+			msg := "\n  " + color(connection, "cyan", "tp") + "$ clanchat: " + color(connection, "green", "tp") + "You " + color(connection, "reset", "reset") + "said, \""
+			msg += color(connection, "yellow", "tp") + strings.Join(cmdTokens[2:], " ") + color(connection, "reset", "reset")
+			msg += "\"\n" + connection.currentInput
+			stream.Write([]byte(msg))
+		} else {
+			stream.Write([]byte("\n  No from your clan is online!\n"))
+		}
+		return 1
+	}
 	switch len(cmdTokens) {
 	case 1:
 		switch cmdTokens[0] {
-		case "test":
-			stream.Write([]byte("a"))
 		case "exit", "quit":
 			HandleClientDisconnect(connection, world, db)
 			return 0
@@ -98,9 +135,15 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					iIDs[world.items[item.id].templateID] += 1
 				}
 			}
-			for tID, num := range iIDs {
-				s := strconv.Itoa(num)
+			held := calcUsedLimit(iIDs, world, connection)
+			heldS := strconv.Itoa(held)
+			stream.Write([]byte("  ----" + color(connection, "magenta", "tp") + "*" + color(connection, "reset", "reset") + " Capacity: " + color(connection, "cyan", "tp") + heldS + color(connection, "reset", "reset") + " / " + color(connection, "cyan", "tp") + strconv.Itoa(connection.session.character.invLimit) + color(connection, "reset", "reset") + "\n"))
+			for tID, qty := range iIDs {
+				s := strconv.Itoa(qty)
 				stream.Write([]byte("  " + color(connection, "cyan", "tp") + s + color(connection, "reset", "reset") + strings.Repeat(" ", 3-len(s)) + " | " + world.ItemTemplates[tID].name + "\n"))
+			}
+			if len(iIDs) == 0 {
+				stream.Write([]byte("  " + color(connection, "cyan", "tp") + "Empty :(" + color(connection, "reset", "reset") + "\n"))
 			}
 		case "equipped", "worn", "armor":
 			s := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
@@ -149,11 +192,19 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				}
 			}
 
+			ct := ""
+			if connection.session.character.clan != nil {
+				if connection.session.character.clan.tag != "" {
+					ct = color(connection, "reset", "reset") + "[" + color(connection, "red", "white") + connection.session.character.clan.tag + color(connection, "reset", "reset") + "] "
+				}
+			}
+			ct += connection.session.username
+
 			var nameMedian int
-			if len(connection.session.username)%2 == 1 {
-				nameMedian = int(math.Floor(float64(len(connection.session.username))/2.0)) + 1
+			if visibleLen(ct)%2 == 1 {
+				nameMedian = int(math.Floor(float64(visibleLen(ct))/2.0)) + 1
 			} else {
-				nameMedian = len(connection.session.username)/2 + 1
+				nameMedian = visibleLen(ct)/2 + 1
 			}
 
 			cardLength := 60
@@ -200,6 +251,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
 		case "sell":
 			stream.Write([]byte("\n  Not enough arguments! Try " + cmdTokens[0] + " <index_item> <entity>\n"))
+		case "clan":
+			stream.Write([]byte("\n  Not enough arguments! Try `help clan` for a list of all clan commands!\n"))
 
 		default:
 			stream.Write([]byte("\n  Command not found!\n"))
@@ -224,14 +277,20 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 					}
 					if matchBool {
-						stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
-						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
-						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
-						_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
-						world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
-						fmt.Println(err)
-						itemFound = true
-						break
+						if calcUsedLimit(map[int]int{}, world, connection) >= connection.session.character.invLimit {
+							stream.Write([]byte("\n  Your inventory is too full to pick up a " + color(connection, "red", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "!\n"))
+							itemFound = true
+							break
+						} else {
+							stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
+							world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
+							world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
+							_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
+							world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
+							fmt.Println(err)
+							itemFound = true
+							break
+						}
 					}
 				}
 				if !itemFound {
@@ -239,12 +298,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				}
 			} else {
 				if len(world.nodeList[connection.session.character.locationID].itemIDs) > i {
-					stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
-					world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
-					world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
-					_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
-					world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
-					fmt.Println(err)
+					if calcUsedLimit(map[int]int{}, world, connection) >= connection.session.character.invLimit {
+						stream.Write([]byte("\n  Your inventory is too full to pick up a " + color(connection, "red", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "!\n"))
+					} else {
+						stream.Write([]byte("\n  You pick up a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
+						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationType = "player"
+						world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].locationID = connection.session.id
+						_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "player", connection.session.id, world.items[world.nodeList[connection.session.character.locationID].itemIDs[i]].id)
+						world.nodeList[connection.session.character.locationID].itemIDs = slices.Delete(world.nodeList[connection.session.character.locationID].itemIDs, i, i+1)
+						fmt.Println(err)
+					}
 				} else {
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
@@ -602,6 +665,27 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					stream.Write([]byte("\n  Entity not found!\n"))
 				}
 			}
+		case "talk":
+			for i, n := range world.npcs {
+				keywords := strings.FieldsFunc(strings.ToLower(n.name), func(r rune) bool {
+					return r == ' ' || r == ','
+				})
+				matchBool := false
+				for _, k := range keywords {
+					if k == cmdTokens[1] {
+						matchBool = true
+					}
+				}
+				if matchBool && n.locationID == connection.session.character.locationID {
+					convo := &NPCConversation{
+						NPC:   world.npcs[i],
+						stage: 0,
+					}
+					connection.session.character.activeConvo = convo
+					go runNPCScript(connection.session.character)
+				}
+			}
+
 		case "train":
 			if cmdTokens[1] == "reset" {
 				c := connection.session.character
@@ -764,6 +848,24 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 				}
 			}
 
+		case "clan":
+			switch cmdTokens[1] {
+			case "leave":
+				LeaveClan(connection, world, db)
+			case "info":
+				if connection.session.character.clan != nil {
+					PrintClanInfo(connection, world)
+				} else {
+					stream.Write([]byte("\n  You are not in a clan!\n"))
+				}
+			case "top":
+				PrintClanTop(connection, world)
+			case "open", "close":
+				UpdateClanStatus(connection, world, db, cmdTokens[1])
+			default:
+				stream.Write([]byte("\n  Command not found. Try `help clan` for a list of all clan commands!\n"))
+			}
+
 		// all the case 1s or 3s
 		case "exit", "quit":
 			stream.Write([]byte("\n  Too many arguments! Try just " + cmdTokens[0] + "\n"))
@@ -796,37 +898,62 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 
 	case 3:
 		switch cmdTokens[0] {
+		case "clan":
+			switch cmdTokens[1] {
+			case "create":
+				if len(cmdTokens[2]) < 4 {
+					stream.Write([]byte("\n  Name too short!\n"))
+				} else if len(cmdTokens[2]) > 13 {
+					stream.Write([]byte("\n  Name too long!\n"))
+				} else {
+					CreateClan(connection, world, db, cmdTokens[2])
+				}
+			case "tag":
+				if len(cmdTokens[2]) != 4 {
+					stream.Write([]byte("\n  Tag must be 4 characters long!\n"))
+				} else {
+					UpdateClanTag(connection, world, db, cmdTokens[2])
+				}
+			case "join":
+				JoinClan(connection, world, db, cmdTokens[2])
+			case "kick":
+				KickFromClan(connection, world, db, cmdTokens[2])
+			default:
+				stream.Write([]byte("\n  Command not found. Try `help clan` for a list of all clan commands!\n"))
+			}
 		case "train":
-			opts := []string{"str", "dex", "agi", "stam", "int", "hp"}
+			optsS := []string{"str", "dex", "agi", "stam", "int", "hp"}
+			optsL := []string{"strength", "dexterity", "agility", "stamina", "intelligence", "hp"}
 			validN, n := validateInt(cmdTokens[1])
 			if !validN || n < 1 {
 				stream.Write([]byte("\n  Invalid number!\n"))
-			} else if !slices.Contains(opts, cmdTokens[2]) {
-				stream.Write([]byte("\n  Invalid stat! Use: str, dex, agi, stam, int, hp\n"))
+			} else if !slices.Contains(optsS, cmdTokens[2]) && !slices.Contains(optsL, cmdTokens[2]) {
+				stream.Write([]byte("\n  Invalid stat! Use: strength, dexterity, agility, stamina, intelligence, hp\n"))
 			} else if connection.session.character.trains < n {
 				stream.Write([]byte("\n  You do not have enough trains!\n"))
 			} else {
 				st := 0
 				for range n {
 					switch cmdTokens[2] {
-					case "str":
+					case "str", "strength":
 						connection.session.character.baseStats.Str += 1
 						st = connection.session.character.baseStats.Str
-					case "dex":
+					case "dex", "dexterity":
 						connection.session.character.baseStats.Dex += 1
-						st = connection.session.character.baseStats.Str
-					case "agi":
+						st = connection.session.character.baseStats.Dex
+					case "agi", "agility":
 						connection.session.character.baseStats.Agi += 1
-						st = connection.session.character.baseStats.Str
-					case "stam":
+						st = connection.session.character.baseStats.Agi
+					case "stam", "stamina":
 						connection.session.character.baseStats.Stam += 1
-						st = connection.session.character.baseStats.Str
-					case "int":
+						connection.session.character.invLimit = calcInvLimit(connection.session.character.baseStats.Stam)
+						st = connection.session.character.baseStats.Stam
+					case "int", "intelligence":
 						connection.session.character.baseStats.Int += 1
-						st = connection.session.character.baseStats.Str
+						st = connection.session.character.baseStats.Int
 					case "hp":
 						connection.session.character.maxHp += 10
-						st = connection.session.character.baseStats.Str
+						st = connection.session.character.maxHp
 					}
 				}
 				connection.session.character.trains -= n
@@ -868,17 +995,24 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							stream.Write([]byte("\n  Item not found!\n"))
 							break
 						}
-						bp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate)
-						bpS := strconv.Itoa(bp)
-						if connection.session.character.coins >= int(bp) {
-							CreateAndInsertItem(connection, world, db, item)
-							stream.Write([]byte("\n  You buy 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + bpS + color(connection, "reset", "reset") + " coins from " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
-							connection.session.character.coins -= int(bp)
-							connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+						if calcUsedLimit(map[int]int{}, world, connection) >= connection.session.character.invLimit {
+							stream.Write([]byte("\n  Your inventory is too full to buy this item!\n"))
+							break
 						} else {
-							stream.Write([]byte(color(connection, "magenta", "tp") + "\n  You don't have enough coins to buy this item!\n" + color(connection, "reset", "reset")))
+							bp := int(float64(world.ItemTemplates[item].baseValue) * world.merchants[en].buyRate)
+							bpS := strconv.Itoa(bp)
+							if connection.session.character.coins >= int(bp) {
+								CreateAndInsertItem(connection, world, db, item)
+								stream.Write([]byte("\n  You buy 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + bpS + color(connection, "reset", "reset") + " coins from " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
+								connection.session.character.coins -= int(bp)
+								if connection.isClientWeb {
+									connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+								}
+							} else {
+								stream.Write([]byte(color(connection, "magenta", "tp") + "\n  You don't have enough coins to buy this item!\n" + color(connection, "reset", "reset")))
+							}
+							break
 						}
-						break
 					}
 				}
 				if !merchantFound {
@@ -1034,6 +1168,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <item_id> <entity>\n"))
 		case "sell":
 			stream.Write([]byte("\n  Too many arguments! Try " + cmdTokens[0] + " <index_item> <entity>\n"))
+		case "clan":
+			stream.Write([]byte("\n  Too many arguments! Try `help clan` for a list of all clan commands!\n"))
 		}
 	}
 	return 1

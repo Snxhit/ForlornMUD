@@ -22,4 +22,13 @@ INSERT OR IGNORE INTO spawners (locationID,templateType,templateID,duration,maxS
 (15,'item',4,50,1),
 (18,'item',5,60,2),
 (20,'item',3,15,1),
-(23,'item',14,35,1);
+(23,'item',14,35,1),
+(102,'item',19,1,3),
+-- training ground
+(103,'entity',19,5,2),
+(104,'entity',20,7,2),
+(106,'entity',19,5,2),
+(106,'entity',19,5,2),
+(108,'entity',20,7,2),
+(111,'entity',21,10,3),
+(109,'entity',21,10,3);
