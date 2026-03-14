@@ -82,6 +82,8 @@ This project was created in [FlavorTown](https://flavortown.hackclub.com/)!<br>
 - helpfiles.go: Defines, manages and sets up in-game helpfiles.
 - ticks.go: Manages periodic world updates.
 - utils.go: All sorts of utility functions.
+- npcs.go: Stores all NPC scripts, structs, etc.
+- clans.go: All the clan logic because commands.go is getting too long
 - db.go: Contains loader for loading template dir.
 - template/
   - 001_dbschema.sql: The basic schema of db.
