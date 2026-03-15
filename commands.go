@@ -138,7 +138,13 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 			held := calcUsedLimit(iIDs, world, connection)
 			heldS := strconv.Itoa(held)
 			stream.Write([]byte("  ----" + color(connection, "magenta", "tp") + "*" + color(connection, "reset", "reset") + " Capacity: " + color(connection, "cyan", "tp") + heldS + color(connection, "reset", "reset") + " / " + color(connection, "cyan", "tp") + strconv.Itoa(connection.session.character.invLimit) + color(connection, "reset", "reset") + "\n"))
-			for tID, qty := range iIDs {
+			var tIDs []int
+			for tID := range iIDs {
+				tIDs = append(tIDs, tID)
+			}
+			slices.Sort(tIDs)
+			for _, tID := range tIDs {
+				qty := iIDs[tID]
 				s := strconv.Itoa(qty)
 				stream.Write([]byte("  " + color(connection, "cyan", "tp") + s + color(connection, "reset", "reset") + strings.Repeat(" ", 3-len(s)) + " | " + world.ItemTemplates[tID].name + "\n"))
 			}
