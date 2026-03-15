@@ -361,19 +361,28 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					tIDs = append(tIDs, tID)
 				}
 				slices.Sort(tIDs)
-				if i < len(tIDs) {
-					tID := tIDs[i]
-					for _, item := range world.items {
-						if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID {
-							stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + "\n"))
-							item.locationType = "room"
-							item.locationID = world.nodeList[connection.session.character.locationID].id
-							world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, item.id)
-							_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, item.id)
-							fmt.Println(err)
-							break
+				found := false
+				idx := 0
+				for _, tID := range tIDs {
+					idx += iIDs[tID]
+					if i < idx {
+						for _, item := range world.items {
+							if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID {
+								stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + "\n"))
+								item.locationType = "room"
+								item.locationID = world.nodeList[connection.session.character.locationID].id
+								world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, item.id)
+								_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, item.id)
+								fmt.Println(err)
+								found = true
+								break
+							}
 						}
+						break
 					}
+				}
+				if !found {
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 		case "examine":
@@ -412,9 +421,15 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					tIDs = append(tIDs, tID)
 				}
 				slices.Sort(tIDs)
-				if i < len(tIDs) {
-					itemT = world.ItemTemplates[tIDs[i]]
-				} else {
+				idx := 0
+				for _, tID := range tIDs {
+					idx += iIDs[tID]
+					if i < idx {
+						itemT = world.ItemTemplates[tID]
+						break
+					}
+				}
+				if itemT == nil {
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
@@ -504,8 +519,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					tIDs = append(tIDs, tID)
 				}
 				slices.Sort(tIDs)
-				if i < len(tIDs) {
-					tID := tIDs[i]
+				tID := -1
+				idx := 0
+				for _, tid := range tIDs {
+					idx += iIDs[tid]
+					if i < idx {
+						tID = tid
+						break
+					}
+				}
+				if tID != -1 {
 					for _, item := range world.items {
 						if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID && !item.equipped {
 							if connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] != 0 {
@@ -533,6 +556,8 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 							break
 						}
 					}
+				} else {
+					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
 		case "unequip", "remove", "uneq":
@@ -598,8 +623,16 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					tIDs = append(tIDs, tID)
 				}
 				slices.Sort(tIDs)
-				if i < len(tIDs) {
-					tID := tIDs[i]
+				tID := -1
+				idx := 0
+				for _, tid := range tIDs {
+					idx += iIDs[tid]
+					if i < idx {
+						tID = tid
+						break
+					}
+				}
+				if tID != -1 {
 					for _, item := range world.items {
 						if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID && !item.equipped {
 							itemT = world.ItemTemplates[tID]
