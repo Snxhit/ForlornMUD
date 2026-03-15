@@ -1128,7 +1128,9 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 								DeleteItem(connection, world, db, i.id)
 								stream.Write([]byte("\n  You sell 1x " + color(connection, "cyan", "tp") + world.ItemTemplates[item].name + color(connection, "reset", "reset") + " for " + color(connection, "yellow", "tp") + spS + color(connection, "reset", "reset") + " coins to " + color(connection, "cyan", "tp") + world.EntityTemplates[e.templateID].name + color(connection, "reset", "reset") + "\n"))
 								connection.session.character.coins += int(sp)
-								connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+								if connection.isClientWeb {
+									connection.store.Write([]byte("\n\x01SELF coins:" + strconv.Itoa(connection.session.character.coins) + "\n"))
+								}
 								itemSold = true
 								break
 							}

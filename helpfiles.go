@@ -518,8 +518,8 @@ var HelpEntries = []HelpEntry{
 	},
 	{
 		id:          27,
-		title:       "Communication",
-		keywords:    []string{"sayto", "say", "tell", "talk", "dm"},
+		title:       "P2P - Communication",
+		keywords:    []string{"sayto", "say", "tell", "dm"},
 		instruction: []string{"sayto <char_name> <msg>", "tell <char_name> <msg>"},
 		category:    "Command",
 		text: []string{
@@ -662,6 +662,21 @@ var HelpEntries = []HelpEntry{
 			"  (They can join back if clan status is open.)",
 			"- clan leave: If a clan owned by you does not have",
 			"  any members, then this can be used to disband the clan!",
+		},
+	},
+	{
+		id:          31,
+		title:       "P2NPC Communication",
+		keywords:    []string{"talk", "NPC"},
+		instruction: []string{"talk <npc_name_keyword>"},
+		category:    "Topic",
+		text: []string{
+			"This command allows you to initiate a conversation with",
+			"an NPC.",
+			"",
+			"Generally, conversations will reset if you leave the room",
+			"unless the NPC makes you go somewhere, in which case",
+			"the conversation is not reset.",
 		},
 	},
 }

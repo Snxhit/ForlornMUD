@@ -3,7 +3,7 @@
   <img src="https://res.cloudinary.com/dp7g5aflo/image/upload/v1771271258/Untitled197_20260216231412_rdbuqx.png">
   <h6><a href="https://youtube.com/@vishkaun">Click here for art credits!</a></h6>
   
-  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-126h%2028m-critical?logo=neovim&style=plastic)
+  ![Time Tracking](https://img.shields.io/badge/ForlornMUD-129h%2056m-critical?logo=neovim&style=plastic)
   ![GitHub Stars](https://img.shields.io/github/stars/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Forks](https://img.shields.io/github/forks/Snxhit/ForlornMUD?style=plastic)
   ![GitHub Issues](https://img.shields.io/github/issues/Snxhit/ForlornMUD?style=plastic)
@@ -250,6 +250,11 @@ This is an end-game armor set!<br>
 
   ![Training](https://res.cloudinary.com/dp7g5aflo/image/upload/v1772456882/2026-03-02_18-23_1_o6416j.png)
 
+- **Clan system**<br>
+Get a clan list, clan rankings!<br>
+
+  ![Clan SS](https://res.cloudinary.com/dp7g5aflo/image/upload/v1773604520/2026-03-16_01-23_kskskc.png)
+
 - **In-Game Help**<br>
 The game has a built in `help` command that shows detailed information about any topic or command!<br>
 
@@ -299,9 +304,9 @@ I'm passionate about building interactive multiplayer games and learning new lan
 
 ## Project Status
 
-**Version**: v0.2.0<br>
-**Latest Release Version**: v0.1.4<br>
-**Time Spent**: 126 Hours 28 Minutes<br>
+**Version**: v0.2.1<br>
+**Latest Release Version**: v0.2.1<br>
+**Time Spent**: 129 Hours 56 Minutes<br>
 **Status**: Actively developed, not stable yet!<br>
 
 ---

@@ -22,9 +22,10 @@ func CreateClan(connection *ConnectionData, world *World, db *sql.DB, name strin
 			return
 		}
 	}
-	if connection.session.character.coins < 50000 {
+	if connection.session.character.coins > 50000 {
 		connection.store.Write([]byte("  You do not have enough coins to create a clan!\n"))
 		connection.store.Write([]byte("  You need " + color(connection, "yellow", "tp") + strconv.Itoa(50000-connection.session.character.coins) + color(connection, "reset", "reset") + " more gold! (50K Total)"))
+		return
 	}
 	AskConfirm(connection, color(connection, "red", "tp")+"\n  Are you sure you want to create a clan?"+color(connection, "reset", "reset")+"\n  Creation will cost "+color(connection, "yellow", "tp")+"50,000"+color(connection, "reset", "reset")+" gold! ("+color(connection, "green", "tp")+"yes"+color(connection, "reset", "reset")+"/"+color(connection, "red", "tp")+"no"+color(connection, "reset", "reset")+")\n\n  => ", func(val bool, db *sql.DB, world *World, conn *ConnectionData) {
 		if val {
@@ -257,7 +258,6 @@ func PrintClanInfo(conn *ConnectionData, world *World) {
 		stream.Write([]byte("  │" + "  Established At : " + color(conn, "magenta", "tp") + estDate + color(conn, "reset", "reset") + strings.Repeat(" ", cardLength-19-len(estDate)) + "│\n"))
 		stream.Write([]byte("  │" + strings.Repeat(" ", cardLength) + "│\n"))
 		stream.Write([]byte("  │" + "  Members" + strings.Repeat(" ", cardLength-9) + "│\n"))
-		fmt.Println()
 		if len(clan.members) == 0 {
 			stream.Write([]byte("  │" + color(conn, "yellow", "tp") + "    Empty :(" + color(conn, "reset", "reset") + strings.Repeat(" ", cardLength-12) + "│\n"))
 		} else {
@@ -288,7 +288,6 @@ func PrintClanInfo(conn *ConnectionData, world *World) {
 		stream.Write([]byte("  |" + "  Established At : " + color(conn, "magenta", "tp") + estDate + color(conn, "reset", "reset") + strings.Repeat(" ", cardLength-19-len(estDate)) + "|\n"))
 		stream.Write([]byte("  |" + strings.Repeat(" ", cardLength) + "|\n"))
 		stream.Write([]byte("  |" + "  Members" + strings.Repeat(" ", cardLength-9) + "|\n"))
-		fmt.Println()
 		if len(clan.members) == 0 {
 			stream.Write([]byte("  |" + color(conn, "yellow", "tp") + "    Empty :(" + color(conn, "reset", "reset") + strings.Repeat(" ", cardLength-12) + "|\n"))
 		} else {
@@ -320,9 +319,6 @@ func PrintClanTop(conn *ConnectionData, world *World) {
 	slices.SortFunc(sorted, func(a, b *Clan) int {
 		return len(a.members) - len(b.members)
 	})
-
-	fmt.Println(world.clans)
-	fmt.Println(sorted)
 
 	for _, c := range sorted {
 		n := c.name
