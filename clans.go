@@ -23,10 +23,10 @@ func CreateClan(connection *ConnectionData, world *World, db *sql.DB, name strin
 		}
 	}
 	if connection.session.character.coins < 50000 {
-		connection.store.Write([]byte("You do not have enough coins to create a clan!"))
-		connection.store.Write([]byte("You need " + color(connection, "yellow", "tp") + strconv.Itoa(50000-connection.session.character.coins) + color(connection, "reset", "reset") + " more gold! (50K Total)"))
+		connection.store.Write([]byte("  You do not have enough coins to create a clan!\n"))
+		connection.store.Write([]byte("  You need " + color(connection, "yellow", "tp") + strconv.Itoa(50000-connection.session.character.coins) + color(connection, "reset", "reset") + " more gold! (50K Total)"))
 	}
-	AskConfirm(connection, "\n  Are you sure you want to create a clan?\n  Creation will cost "+color(connection, "yellow", "tp")+"50,000"+color(connection, "reset", "reset")+" gold! ("+color(connection, "green", "tp")+"yes"+color(connection, "reset", "reset")+"/"+color(connection, "red", "tp")+"no"+color(connection, "reset", "reset")+")\n\n  => ", func(val bool, db *sql.DB, world *World, conn *ConnectionData) {
+	AskConfirm(connection, color(connection, "red", "tp")+"\n  Are you sure you want to create a clan?"+color(connection, "reset", "reset")+"\n  Creation will cost "+color(connection, "yellow", "tp")+"50,000"+color(connection, "reset", "reset")+" gold! ("+color(connection, "green", "tp")+"yes"+color(connection, "reset", "reset")+"/"+color(connection, "red", "tp")+"no"+color(connection, "reset", "reset")+")\n\n  => ", func(val bool, db *sql.DB, world *World, conn *ConnectionData) {
 		if val {
 			prom, err := db.Exec("INSERT INTO clans (name, tag, owner_id, status) VALUES (?, ?, ?, ?)", name, "", connection.session.id, "open")
 			if err != nil {

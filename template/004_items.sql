@@ -19,7 +19,7 @@ INSERT OR IGNORE INTO item_templates VALUES
 (17,'Cooked Tights','Leggings spun from ramen. Im hungry.','legs',0,35,35000),
 (18,'Cooked Ring','A ring encrusted with a well cooked seal of approval!','ring',0,0,20000),
 (19,'Broken Wooden Sword','A very old, broken, blunt wooden sword.','mainhand',4,0,50),
-(20,'Wooden Stick','A wooden... stick?','item',0,0,0);
+(20,'Metal Stick','A metal... stick?','item',0,0,0);
 
 INSERT OR IGNORE INTO item_template_modifiers VALUES
 (8,'str',5),

@@ -344,21 +344,29 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
-				var playerItems []int
+				iIDs := map[int]int{}
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id {
-						playerItems = append(playerItems, item.id)
+						iIDs[item.templateID] += 1
 					}
 				}
-				if len(playerItems) > i {
-					stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
-					world.items[playerItems[i]].locationType = "room"
-					world.items[playerItems[i]].locationID = world.nodeList[connection.session.character.locationID].id
-					world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, playerItems[i])
-					_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, playerItems[i])
-					fmt.Println(err)
-				} else {
-					stream.Write([]byte("\n  Item not found!\n"))
+				idx := 0
+				for tID := range iIDs {
+					if idx == i {
+						for _, item := range world.items {
+							if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID {
+								stream.Write([]byte("\n  You dropped a " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + "\n"))
+								item.locationType = "room"
+								item.locationID = world.nodeList[connection.session.character.locationID].id
+								world.nodeList[connection.session.character.locationID].itemIDs = append(world.nodeList[connection.session.character.locationID].itemIDs, item.id)
+								_, err := db.Exec("UPDATE items SET (locationType, locationID) = (?, ?) WHERE id = ?", "room", connection.session.character.locationID, item.id)
+								fmt.Println(err)
+								break
+							}
+						}
+						break
+					}
+					idx++
 				}
 			}
 		case "examine":
@@ -378,6 +386,7 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 						}
 						if matchBool {
 							itemT = world.ItemTemplates[item.templateID]
+							break
 						}
 					}
 				}
@@ -385,15 +394,21 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
-				var playerItems []int
+				iIDs := map[int]int{}
 				for _, item := range world.items {
-					if item.locationType == "player" && item.locationID == connection.session.id {
-						playerItems = append(playerItems, item.id)
+					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped {
+						iIDs[item.templateID] += 1
 					}
 				}
-				if len(playerItems) > i {
-					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
-				} else {
+				idx := 0
+				for tID := range iIDs {
+					if idx == i {
+						itemT = world.ItemTemplates[tID]
+						break
+					}
+					idx++
+				}
+				if itemT == nil {
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			}
@@ -471,39 +486,46 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					stream.Write([]byte("\n  Item not found!\n"))
 				}
 			} else {
-				var playerItems []int
+				iIDs := map[int]int{}
 				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped && slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
-						playerItems = append(playerItems, item.id)
+						iIDs[item.templateID] += 1
 					}
 				}
-				if len(playerItems) > i && len(playerItems) != 0 {
-					if connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype] != 0 {
-						out := connection.session.character.modifiers[:0]
-						for _, mod := range connection.session.character.modifiers {
-							if mod.sourceID != connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype] {
-								out = append(out, mod)
+				idx := 0
+				for tID := range iIDs {
+					if idx == i {
+						for _, item := range world.items {
+							if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID && !item.equipped {
+								if connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] != 0 {
+									out := connection.session.character.modifiers[:0]
+									for _, mod := range connection.session.character.modifiers {
+										if mod.sourceID != connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] {
+											out = append(out, mod)
+										}
+									}
+									connection.session.character.modifiers = out
+									stream.Write([]byte("\n  You unequip " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[connection.session.character.equipment[world.ItemTemplates[item.templateID].itype]].templateID].name + color(connection, "reset", "reset") + "\n"))
+									world.items[connection.session.character.equipment[world.ItemTemplates[item.templateID].itype]].equipped = false
+									connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] = 0
+									_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", false, connection.session.character.equipment[world.ItemTemplates[item.templateID].itype])
+									fmt.Println(err)
+								}
+								for _, mod := range world.ItemTemplates[item.templateID].modifiers {
+									connection.session.character.modifiers = append(connection.session.character.modifiers, StatModifier{"item", item.id, mod.stat, mod.value})
+								}
+								stream.Write([]byte("\n  You equip a " + color(connection, "cyan", "tp") + world.ItemTemplates[item.templateID].name + color(connection, "reset", "reset") + " on the " + color(connection, "yellow", "tp") + world.ItemTemplates[item.templateID].itype + color(connection, "reset", "reset") + "\n"))
+								item.equipped = true
+								_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", true, item.id)
+								fmt.Println(err)
+								connection.session.character.equipment[world.ItemTemplates[item.templateID].itype] = item.id
+								break
 							}
 						}
-						connection.session.character.modifiers = out
-						stream.Write([]byte("\n  You unequip " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + "\n"))
-						world.items[connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype]].equipped = false
-						connection.session.character.equipment[cmdTokens[1]] = 0
-						_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", false, world.items[playerItems[i]].id)
-						fmt.Println(err)
+						break
 					}
-					for _, mod := range world.ItemTemplates[world.items[playerItems[i]].templateID].modifiers {
-						connection.session.character.modifiers = append(connection.session.character.modifiers, StatModifier{"item", playerItems[i], mod.stat, mod.value})
-					}
-					stream.Write([]byte("\n  You equip a " + color(connection, "cyan", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].name + color(connection, "reset", "reset") + " on the " + color(connection, "yellow", "tp") + world.ItemTemplates[world.items[playerItems[i]].templateID].itype + color(connection, "reset", "reset") + "\n"))
-					world.items[playerItems[i]].equipped = true
-					_, err := db.Exec("UPDATE items SET (equipped) = (?) WHERE id = ?", true, playerItems[i])
-					fmt.Println(err)
-					fmt.Println(connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype])
-					connection.session.character.equipment[world.ItemTemplates[world.items[playerItems[i]].templateID].itype] = playerItems[i]
-				} else {
-					stream.Write([]byte("\n  Item not found!\n"))
+					idx++
 				}
 			}
 		case "unequip", "remove", "uneq":
@@ -557,16 +579,26 @@ func Commands(cmdTokens []string, db *sql.DB, world *World, connection *Connecti
 					}
 				}
 			} else {
-				var playerItems []int
+				iIDs := map[int]int{}
 				e := []string{"mainhand", "offhand", "head", "body", "legs", "ring"}
 				for _, item := range world.items {
 					if item.locationType == "player" && item.locationID == connection.session.id && !item.equipped && !slices.Contains(e, world.ItemTemplates[item.templateID].itype) {
-						playerItems = append(playerItems, item.id)
+						iIDs[item.templateID] += 1
 					}
 				}
-				if len(playerItems) > i && len(playerItems) != 0 {
-					itemT = world.ItemTemplates[world.items[playerItems[i]].templateID]
-					itemM = world.items[playerItems[i]]
+				idx := 0
+				for tID := range iIDs {
+					if idx == i {
+						for _, item := range world.items {
+							if item.locationType == "player" && item.locationID == connection.session.id && item.templateID == tID && !item.equipped {
+								itemT = world.ItemTemplates[tID]
+								itemM = item
+								break
+							}
+						}
+						break
+					}
+					idx++
 				}
 			}
 			if itemT != nil {

@@ -573,6 +573,8 @@ var HelpEntries = []HelpEntry{
 			"- sell - Sells an item from your inv to a merchant",
 			"- sayto, tell - Allows you to talk to other players",
 			"- toggle - Toggles pretty unicode and/or colors",
+			"- clan - Do `help clans` for a list of all clan",
+			"  related commands!",
 
 			"exit, quit - Disconnect from the game",
 			"",
