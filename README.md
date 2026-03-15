@@ -15,6 +15,7 @@
 ## Index
 
 - [Overview](#overview)
+- [Map](#map)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
@@ -39,6 +40,12 @@ This project was created in [FlavorTown](https://flavortown.hackclub.com/)!<br>
 - Dynamic world with entity, item spawners, merchants, and a flexible stats, leveling system!
 - Thought out combat mechanics, including PvP, PvE, with looting and leveling!
 - Automatic database setup and persistent world state.
+
+---
+
+## Map
+
+![Map](https://res.cloudinary.com/dp7g5aflo/image/upload/v1773539111/ForlornMUD_mbid2d.png)
 
 ---
 
