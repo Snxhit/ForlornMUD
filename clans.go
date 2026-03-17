@@ -22,7 +22,7 @@ func CreateClan(connection *ConnectionData, world *World, db *sql.DB, name strin
 			return
 		}
 	}
-	if connection.session.character.coins > 50000 {
+	if connection.session.character.coins < 50000 {
 		connection.store.Write([]byte("  You do not have enough coins to create a clan!\n"))
 		connection.store.Write([]byte("  You need " + color(connection, "yellow", "tp") + strconv.Itoa(50000-connection.session.character.coins) + color(connection, "reset", "reset") + " more gold! (50K Total)"))
 		return
